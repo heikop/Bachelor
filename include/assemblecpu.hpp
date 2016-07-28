@@ -7,6 +7,6 @@
 #include "csrmatrix.hpp"
 #include "global.hpp"
 
-void assemble_cpu_atomic(CsrMatrix& matrix, std::vector<FullTriangle>& elements);
+void assemble_cpu_elem(CsrMatrix& matrix, std::vector<FullTriangle>& elements);
 
 #endif

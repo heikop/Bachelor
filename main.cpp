@@ -21,10 +21,19 @@ int main()
     clock_t time(clock());
     CsrMatrix matrix(nodes.size());
     matrix.createStructure(elements.data(), elements.size());
-    assemble_cpu_atomic(matrix, fullElements);
     time -= clock();
     std::cout << float(-time) / CLOCKS_PER_SEC << std::endl;
 
+    time = clock();
+    assemble_cpu_elem(matrix, fullElements);
+    time -= clock();
+    std::cout << float(-time) / CLOCKS_PER_SEC << std::endl;
+//    matrix.print_local_data(1);
+
+    time = clock();
+    assemble_gpu_atomix(matrix, fullElements);
+    time -= clock();
+    std::cout << float(-time) / CLOCKS_PER_SEC << std::endl;
 //    matrix.print_local_data(1);
 
     return 0;
