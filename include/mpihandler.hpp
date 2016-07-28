@@ -10,11 +10,15 @@ class MpiHandler
 {
 public:
     MpiHandler();
+    ~MpiHandler();
+    /*
+    MpiHandler();
     MpiHandler(const MpiHandler&) = delete;
     MpiHandler(MpiHandler&&) = delete;
     ~MpiHandler();
     MpiHandler& operator=(const MpiHandler&) = delete;
     MpiHandler& operator=(MpiHandler&&) = delete;
+    */
 
     void catch_call(int line, std::string file, const std::exception& ex);
 

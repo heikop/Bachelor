@@ -27,7 +27,7 @@ public:
     void add_global(const size_t, const size_t, const float);
 
     void print_local_data(const size_t firstindex);
-private:
+//private:
     size_t _numrows, _numcols;
     size_t* _rowptr;
     size_t* _colind;

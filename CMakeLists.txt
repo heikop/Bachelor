@@ -48,11 +48,14 @@ include(FindCUDA)
 
 file (GLOB GLOBSOURCES "*.cpp" "*.cu")
 add_library (GLOBLIB ${GLOBSOURCES})
+file (GLOB CUDASOURCES "*.cu")
+cuda_add_library(CUDALIB ${CUDASOURCES})
 
 
 #file (GLOB DEMO "main.cpp")
-add_executable(demo "main.cpp")
-target_link_libraries(demo GLOBLIB ${MPI_LIBRARIES})
+#add_executable(demo "main.cpp")
+cuda_add_executable(demo "main.cpp")
+target_link_libraries(demo GLOBLIB CUDALIB ${MPI_LIBRARIES} ${CUDA_LIBRARIES})
 
 
 
@@ -63,6 +66,7 @@ target_link_libraries(demo GLOBLIB ${MPI_LIBRARIES})
 LIST(APPEND CMAKE_CXX_FLAGS "-std=c++11 -O3 -ffast-math -Wall")
 
 LIST(APPEND CUDA_NVCC_FLAGS --compiler-options -fno-strict-aliasing -lineinfo -use_fast_math -Xptxas -dlcm=cg)
+#LIST(APPEND CUDA_NVCC_FLAGS -Xcompiler "std=c++0x")
 LIST(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_20,code=sm_20)
 LIST(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_30,code=sm_30)
 LIST(APPEND CUDA_NVCC_FLAGS -gencode arch=compute_35,code=sm_35)

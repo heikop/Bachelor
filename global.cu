@@ -1,0 +1,2 @@
+//int DEVCOUNT;
+//cudaGetDeviceCount(&DEVCOUNT);

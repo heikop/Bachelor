@@ -4,8 +4,10 @@
 #include "include/global.hpp"
 #include "include/readmesh.hpp"
 #include "include/assemblecpu.hpp"
+#include "include/assemblegpu.hpp"
 
 void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<FullTriangle>& fullElements);
+//void assemble_gpu_atomic(CsrMatrix& matrix, std::vector<FullTriangle>& elements);
 
 int main()
 {
@@ -31,7 +33,8 @@ int main()
 //    matrix.print_local_data(1);
 
     time = clock();
-    assemble_gpu_atomix(matrix, fullElements);
+    assemble_gpu_atomic(matrix, fullElements);
+    //assemble_gpu_atomic(matrix._rowptr, matrix._colind, matrix._values, matrix._numrows, fullElements.data(), fullElements.size());
     time -= clock();
     std::cout << float(-time) / CLOCKS_PER_SEC << std::endl;
 //    matrix.print_local_data(1);

@@ -13,7 +13,7 @@ void assemble_cpu_elem(CsrMatrix& matrix, std::vector<FullTriangle>& elements)
         //d[0] = elem.nodeA.x;
         //d[1] = elem.nodeA.y;
         float detB(std::abs(B[0][0]*B[1][1] - B[0][1]*B[1][0]));
-        float gradA[2], gradB[2], gradC[2]; // in fact these are the gradient multplied by det(B)=det(B^-T)
+        float gradA[2], gradB[2], gradC[2]; // in fact these are the gradient multplied by det(B)
         gradA[0] = B[1][0] - B[1][1];
         gradA[1] = B[0][1] - B[0][0];
         gradB[0] = B[1][1];
