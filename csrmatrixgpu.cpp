@@ -1,20 +1,17 @@
 #include "include/csrmatrixgpu.hpp"
 
-template<typename scalar> void malloc_cuda(scalar** devPtr, size_t size);
-template<typename scalar> void free_cuda(scalar* devPtr);
-
 CsrMatrixGpu::CsrMatrixGpu(const size_t numrows, const size_t numcols):
     _numrows(numrows), _numcols(numcols),
     _colind(nullptr), _values(nullptr)
 {
-    malloc_cuda(&_rowptr, (numrows+1)*sizeof(float));
+    malloc_cuda(&_rowptr, (numrows+1)*sizeof(size_t));
 }
 
 CsrMatrixGpu::CsrMatrixGpu(const size_t size):
     _numrows(size), _numcols(size),
     _colind(nullptr), _values(nullptr)
 {
-    malloc_cuda(&_rowptr, (size+1)*sizeof(float));
+    malloc_cuda(&_rowptr, (size+1)*sizeof(size_t));
 }
 
 CsrMatrixGpu::~CsrMatrixGpu()
@@ -50,25 +47,23 @@ void CsrMatrixGpu::createStructure(const Triangle* const elements, const size_t 
         }
     }
 
+    size_t* h_rowptr = new size_t[_numrows+1];
     size_t num_values(0);
     for (size_t i(0); i < _numrows; ++i)
     {
-        _rowptr[i] = num_values;
+        h_rowptr[i] = num_values;
         num_values += lol[i].size();
     }
-    _rowptr[_numrows] = num_values;
-    free_cuda(_colind);
-    free_cuda(_values);
-    malloc_cuda(&_colind, num_values*sizeof(size_t));
-    malloc_cuda(&_values, num_values*sizeof(float));
+    h_rowptr[_numrows] = num_values;
 
+    size_t* h_colind = new size_t[num_values];
     size_t current_pos(0);
     for (const auto& row : lol)
         for (const auto col : row)
-            _colind[current_pos++] = col;
+            h_colind[current_pos++] = col;
+    float* h_values = new float[num_values];
     for (size_t i(0); i < num_values; ++i)
-        _values[i] = 0.0;
-
+        h_values[i] = 0.0;
 
     // test output
     /*
@@ -92,6 +87,17 @@ void CsrMatrixGpu::createStructure(const Triangle* const elements, const size_t 
         std::cout << _values[i] << ", ";
     std::cout << std::endl;
     */
+
+    free_cuda(_colind);
+    free_cuda(_values);
+    malloc_cuda(&_colind, num_values*sizeof(size_t));
+    malloc_cuda(&_values, num_values*sizeof(float));
+    memcpy_cuda(_rowptr, h_rowptr, (_numrows+1)*sizeof(size_t), h2d);
+    memcpy_cuda(_colind, h_colind, num_values*sizeof(size_t), h2d);
+    memcpy_cuda(_values, h_values, num_values*sizeof(float), h2d);
+    delete[] h_rowptr;
+    delete[] h_colind;
+    delete[] h_values;
 }
 
 void CsrMatrixGpu::set_local(const size_t row, const size_t col, const float val)
@@ -114,13 +120,34 @@ void CsrMatrixGpu::add_local(const size_t row, const size_t col, const float val
     _values[pos_to_insert] += val;
 }
 
+void CsrMatrixGpu::add_local_atomic(const size_t row, const size_t col, const float val)
+{
+    assert(row < _numrows && col < _numcols);
+    size_t pos_to_insert(_rowptr[row]);
+    while (_colind[pos_to_insert] < col && pos_to_insert < _rowptr[row+1])
+        ++pos_to_insert;
+    assert(_colind[pos_to_insert] == col && pos_to_insert < _rowptr[row+1]);
+    _values[pos_to_insert] += val;
+    //atomicAdd(&_values[pos_to_insert], val);
+}
+
 void CsrMatrixGpu::print_local_data(const size_t firstindex=0)
 {
-    //for (size_t row(0), current_pos(0); row < _numrows; ++row)
-    //{
-    //    std::cout << row+firstindex << ": ";
-    //    for (size_t col(_rowptr[row]); col < _rowptr[row+1]; ++col, ++current_pos)
-    //        std::cout << _values[current_pos] << "(" << _colind[current_pos]+firstindex << "), ";
-    //    std::cout << std::endl;
-    //}
+    size_t* h_rowptr = new size_t[_numrows+1];
+    memcpy_cuda(h_rowptr, _rowptr, (_numrows+1)*sizeof(size_t), d2h);
+    size_t* h_colind = new size_t[h_rowptr[_numrows]];
+    float* h_values = new float[h_rowptr[_numrows]];
+    memcpy_cuda(h_colind, _colind, h_rowptr[_numrows]*sizeof(size_t), d2h);
+    memcpy_cuda(h_values, _values, h_rowptr[_numrows]*sizeof(float), d2h);
+
+    for (size_t row(0), current_pos(0); row < _numrows; ++row)
+    {
+        std::cout << row+firstindex << ": ";
+        for (size_t col(h_rowptr[row]); col < h_rowptr[row+1]; ++col, ++current_pos)
+            std::cout << h_values[current_pos] << "(" << h_colind[current_pos]+firstindex << "), ";
+        std::cout << std::endl;
+    }
+    delete[] h_rowptr;
+    delete[] h_colind;
+    delete[] h_values;
 }

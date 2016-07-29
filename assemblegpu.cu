@@ -1,12 +1,12 @@
 #include "include/global.hpp"
 #include <cassert>
 
-__device__ void add_local(const size_t* const rowptr, const size_t* const colind, float* const values, const size_t row, const size_t col, const float val)
+__device__ void add_local_atomic(const size_t* const rowptr, const size_t* const colind, float* const values, const size_t row, const size_t col, const float val)
 {
     size_t pos_to_insert(rowptr[row]);
     while (colind[pos_to_insert] < col && pos_to_insert < rowptr[row+1])
         ++pos_to_insert;
-    atomicAdd(&values[pos_to_insert], val);
+    atomicAdd(values + pos_to_insert, val);
 }
 
 __global__ void atomic(const size_t* const rowptr, const size_t* const colind, float* const values, const size_t numrows, const FullTriangle* const elements, const size_t numelem)
@@ -32,20 +32,24 @@ __global__ void atomic(const size_t* const rowptr, const size_t* const colind, f
         gradC[0] = -B[1][0];
         gradC[1] = B[0][0];
 
-        add_local(rowptr, colind, values, elem.nodeA.ID, elem.nodeA.ID, (gradA[0]*gradA[0] + gradA[1]*gradA[1]) / 2.0 / detB);
-        add_local(rowptr, colind, values, elem.nodeA.ID, elem.nodeB.ID, (gradA[0]*gradB[0] + gradA[1]*gradB[1]) / 2.0 / detB);
-        add_local(rowptr, colind, values, elem.nodeA.ID, elem.nodeC.ID, (gradA[0]*gradC[0] + gradA[1]*gradC[1]) / 2.0 / detB);
-        add_local(rowptr, colind, values, elem.nodeB.ID, elem.nodeA.ID, (gradB[0]*gradA[0] + gradB[1]*gradA[1]) / 2.0 / detB);
-        add_local(rowptr, colind, values, elem.nodeB.ID, elem.nodeB.ID, (gradB[0]*gradB[0] + gradB[1]*gradB[1]) / 2.0 / detB);
-        add_local(rowptr, colind, values, elem.nodeB.ID, elem.nodeC.ID, (gradB[0]*gradC[0] + gradB[1]*gradC[1]) / 2.0 / detB);
-        add_local(rowptr, colind, values, elem.nodeC.ID, elem.nodeA.ID, (gradC[0]*gradA[0] + gradC[1]*gradA[1]) / 2.0 / detB);
-        add_local(rowptr, colind, values, elem.nodeC.ID, elem.nodeB.ID, (gradC[0]*gradB[0] + gradC[1]*gradB[1]) / 2.0 / detB);
-        add_local(rowptr, colind, values, elem.nodeC.ID, elem.nodeC.ID, (gradC[0]*gradC[0] + gradC[1]*gradC[1]) / 2.0 / detB);
+        add_local_atomic(rowptr, colind, values, elem.nodeA.ID, elem.nodeA.ID, (gradA[0]*gradA[0] + gradA[1]*gradA[1]) / 2.0 / detB);
+        add_local_atomic(rowptr, colind, values, elem.nodeA.ID, elem.nodeB.ID, (gradA[0]*gradB[0] + gradA[1]*gradB[1]) / 2.0 / detB);
+        add_local_atomic(rowptr, colind, values, elem.nodeA.ID, elem.nodeC.ID, (gradA[0]*gradC[0] + gradA[1]*gradC[1]) / 2.0 / detB);
+        add_local_atomic(rowptr, colind, values, elem.nodeB.ID, elem.nodeA.ID, (gradB[0]*gradA[0] + gradB[1]*gradA[1]) / 2.0 / detB);
+        add_local_atomic(rowptr, colind, values, elem.nodeB.ID, elem.nodeB.ID, (gradB[0]*gradB[0] + gradB[1]*gradB[1]) / 2.0 / detB);
+        add_local_atomic(rowptr, colind, values, elem.nodeB.ID, elem.nodeC.ID, (gradB[0]*gradC[0] + gradB[1]*gradC[1]) / 2.0 / detB);
+        add_local_atomic(rowptr, colind, values, elem.nodeC.ID, elem.nodeA.ID, (gradC[0]*gradA[0] + gradC[1]*gradA[1]) / 2.0 / detB);
+        add_local_atomic(rowptr, colind, values, elem.nodeC.ID, elem.nodeB.ID, (gradC[0]*gradB[0] + gradC[1]*gradB[1]) / 2.0 / detB);
+        add_local_atomic(rowptr, colind, values, elem.nodeC.ID, elem.nodeC.ID, (gradC[0]*gradC[0] + gradC[1]*gradC[1]) / 2.0 / detB);
     }
 }
 
-void assemble_atomic(size_t* rowptr, size_t* colind, float* values, size_t numrows, FullTriangle* elements, size_t numelem)
+void assemble_atomic(size_t* d_rowptr, size_t* d_colind, float* d_values, size_t numrows, FullTriangle* h_elements, size_t numelem)
 {
+    FullTriangle* d_elements;
+    malloc_cuda(&d_elements, numelem*sizeof(FullTriangle));
+    memcpy_cuda(d_elements, h_elements, numelem*sizeof(FullTriangle), h2d);
+
     int devCount;
     cudaGetDeviceCount(&devCount);
     assert(devCount > 0);
@@ -53,5 +57,7 @@ void assemble_atomic(size_t* rowptr, size_t* colind, float* values, size_t numro
     cudaGetDeviceProperties(&props, 0);
     dim3 numthreads(props.maxThreadsDim[0], 1, 1);
     dim3 numblocks(numelem / numthreads.x + (numelem%numthreads.x == 0 ? 0 : 1), 1, 1);
-    atomic<<<numblocks, numthreads>>>(rowptr,  colind,  values,  numrows,  elements, numelem);
+    atomic<<<numblocks, numthreads>>>(d_rowptr, d_colind, d_values, numrows, d_elements, numelem);
+
+    free_cuda(d_elements);
 }

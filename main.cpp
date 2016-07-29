@@ -15,10 +15,10 @@ int main()
     vector<Node> nodes;
     vector<Triangle> elements;
     vector<FullTriangle> fullElements;
-    readmesh("../data/square.msh", nodes, elements, fullElements);
+    readmesh("../data/square_small.msh", nodes, elements, fullElements);
     std::cout << "read mesh" << std::endl;
     fillFullElements(nodes, elements, fullElements);
-    nodes.clear();
+    //nodes.clear();
 
     std::cout << "start assembling cpu" << std::endl;
     clock_t time(clock());
@@ -31,7 +31,7 @@ int main()
     assemble_cpu_elem(matrix_cpu, fullElements);
     time -= clock();
     std::cout << "assembly: " << float(-time) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
-//    matrix.print_local_data(1);
+    matrix_cpu.print_local_data(1);
 
     std::cout << "start assembling gpu" << std::endl;
     time = clock();
@@ -44,7 +44,7 @@ int main()
     assemble_gpu_atomic(matrix_gpu, fullElements);
     time -= clock();
     std::cout << "assembly: " << float(-time) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
-//    matrix.print_local_data(1);
+    matrix_gpu.print_local_data(1);
 
     return 0;
 }

@@ -23,6 +23,7 @@ public:
 
     void set_local(const size_t, const size_t, const float);
     void add_local(const size_t, const size_t, const float);
+    void add_local_atomic(const size_t, const size_t, const float);
     void set_global(const size_t, const size_t, const float);
     void add_global(const size_t, const size_t, const float);
 
