@@ -1,27 +1,27 @@
-#include "include/csrmatrix.hpp"
+#include "include/csrmatrixcpu.hpp"
 
-CsrMatrix::CsrMatrix(const size_t numrows, const size_t numcols):
+CsrMatrixCpu::CsrMatrixCpu(const size_t numrows, const size_t numcols):
     _numrows(numrows), _numcols(numcols),
     _colind(nullptr), _values(nullptr)
 {
     _rowptr = new size_t[numrows+1];
 }
 
-CsrMatrix::CsrMatrix(const size_t size):
+CsrMatrixCpu::CsrMatrixCpu(const size_t size):
     _numrows(size), _numcols(size),
     _colind(nullptr), _values(nullptr)
 {
     _rowptr = new size_t[size+1];
 }
 
-CsrMatrix::~CsrMatrix()
+CsrMatrixCpu::~CsrMatrixCpu()
 {
     delete[] _rowptr;
     delete[] _colind;
     delete[] _values;
 }
 
-void CsrMatrix::createStructure(const Triangle* const elements, const size_t num_elem)
+void CsrMatrixCpu::createStructure(const Triangle* const elements, const size_t num_elem)
 {
     std::vector<std::vector<size_t>> lol(_numcols, std::vector<size_t>(0));
     for (size_t i(0); i < num_elem; ++i)
@@ -91,7 +91,7 @@ void CsrMatrix::createStructure(const Triangle* const elements, const size_t num
     */
 }
 
-void CsrMatrix::set_local(const size_t row, const size_t col, const float val)
+void CsrMatrixCpu::set_local(const size_t row, const size_t col, const float val)
 {
     assert(row < _numrows && col < _numcols);
     size_t pos_to_insert(_rowptr[row]);
@@ -101,7 +101,7 @@ void CsrMatrix::set_local(const size_t row, const size_t col, const float val)
     _values[pos_to_insert] = val;
 }
 
-void CsrMatrix::add_local(const size_t row, const size_t col, const float val)
+void CsrMatrixCpu::add_local(const size_t row, const size_t col, const float val)
 {
     assert(row < _numrows && col < _numcols);
     size_t pos_to_insert(_rowptr[row]);
@@ -111,7 +111,7 @@ void CsrMatrix::add_local(const size_t row, const size_t col, const float val)
     _values[pos_to_insert] += val;
 }
 
-void CsrMatrix::print_local_data(const size_t firstindex=0)
+void CsrMatrixCpu::print_local_data(const size_t firstindex=0)
 {
     for (size_t row(0), current_pos(0); row < _numrows; ++row)
     {

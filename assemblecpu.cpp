@@ -1,6 +1,6 @@
 #include "include/assemblecpu.hpp"
 
-void assemble_cpu_elem(CsrMatrix& matrix, std::vector<FullTriangle>& elements)
+void assemble_cpu_elem(CsrMatrixCpu& matrix, std::vector<FullTriangle>& elements)
 {
     for (auto& elem : elements)
     {

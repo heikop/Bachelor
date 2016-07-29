@@ -3,11 +3,12 @@
 
 #include <iostream>
 #include <fstream>
+#include <vector>
 //#include <sstream>
 
 using namespace std;
 
-void readmesh(string filename, vector<Node>& nodes, vector<Triangle>& elements, vector<FullTriangle>& fullElements)
+void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle>& elements, std::vector<FullTriangle>& fullElements)
 {
     ifstream fin(filename.c_str());
 
@@ -49,6 +50,7 @@ void readmesh(string filename, vector<Node>& nodes, vector<Triangle>& elements, 
     }
 
     fin.close();
+    elements.shrink_to_fit();
 }
 
 #endif
