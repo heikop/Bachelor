@@ -111,6 +111,17 @@ void CsrMatrixCpu::add_local(const size_t row, const size_t col, const float val
     _values[pos_to_insert] += val;
 }
 
+void CsrMatrixCpu::multvec(const VectorCpu& vec, VectorCpu& res) const
+{
+    assert(_numcols == vec._size && _numrows == res._size); //TODISCUSS or reallocate when res has a different size?
+    for (size_t row{0}; row < _numrows; ++row)
+    {
+        res._values[row] = 0.0;
+        for (size_t col{_rowptr[row]}; col < _rowptr[row+1]; ++col)
+            res._values[row] += _values[col] * vec._values[_colind[col]];
+    }
+}
+
 void CsrMatrixCpu::print_local_data(const size_t firstindex=0)
 {
     for (size_t row(0), current_pos(0); row < _numrows; ++row)

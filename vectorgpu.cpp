@@ -1,12 +1,5 @@
 #include "include/vectorgpu.hpp"
 
-VectorGpu::VectorGpu(const size_t size):
-    _size(size)
-{
-    malloc_cuda(&_values, _size*sizeof(float));
-    //TODISCUSS: set to zero?
-}
-
 VectorGpu::VectorGpu(const VectorGpu& other):
     _size(other._size)
 {
@@ -46,36 +39,10 @@ VectorGpu VectorGpu::operator=(VectorGpu&& other)
     return *this;
 }
 
-void VectorGpu::set_local(const size_t pos, const float val)
-{
-    assert(pos < _size);
-    //TODO
-}
-
-void VectorGpu::add_local(const size_t pos, const float val)
-{
-    assert(pos < _size);
-    //TODO
-}
-
-//void VectorGpu::set_global(const size_t, const float); //TODO later
-//void VectorGpu::add_global(const size_t, const float); //TODO later
-
-//void VectorGpu::scal_mul(const float scalar)
-//{
-//    //TODO
-//}
-//
-//void scal_mul_kernel(const float scalar)
-//{
-//}
-
-float VectorGpu::dot_vec(const VectorGpu& other) const
+void VectorGpu::copy(const VectorGpu& other)
 {
     assert(_size == other._size);
-    float res(0.0);
-    //TODO
-    return res;
+    memcpy_cuda(this, &other, _size*sizeof(float), d2d);
 }
 
 void VectorGpu::print_local_data(const size_t firstindex=0) const

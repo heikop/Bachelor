@@ -6,6 +6,9 @@
 #include "include/csrmatrixgpu.hpp"
 #include "include/assemblecpu.hpp"
 #include "include/assemblegpu.hpp"
+#include "include/vectorcpu.hpp"
+#include "include/vectorgpu.hpp"
+#include "include/cgsolver.hpp"
 
 void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<FullTriangle>& fullElements);
 
@@ -81,6 +84,21 @@ int main()
     std::cout.width(7); std::cout << "mesh" << " : "; std::cout.width(6); std::cout << duration[0] << " | ";             std::cout.width(7); std::cout << ""; std::cout << std::endl;
     std::cout.width(7); std::cout <<  "CPU" << " : "; std::cout.width(6); std::cout << duration[1]+duration[2] << " | "; std::cout.width(7); std::cout << duration[1] << ", "; std::cout.width(7); std::cout << duration[2]; std::cout << std::endl;
     std::cout.width(7); std::cout <<  "GPU" << " : "; std::cout.width(6); std::cout << duration[3]+duration[4] << " | "; std::cout.width(7); std::cout << duration[3] << ", "; std::cout.width(7); std::cout << duration[4]; std::cout << std::endl;
+
+
+    // calculation - solving LGS
+    nodes.clear();
+    elements.clear();
+    fullElements.clear();
+    VectorCpu rhs_cpu(matrix_cpu._numrows, 1.0);
+    VectorCpu res_cpu(matrix_cpu._numrows, 1.0);
+    CgSolver<CsrMatrixCpu, VectorCpu> solver_cpu(matrix_cpu, rhs_cpu);
+    solver_cpu.solve(res_cpu);
+    VectorGpu rhs_gpu(matrix_gpu._numrows, 1.0);
+    VectorGpu res_gpu(matrix_gpu._numrows, 1.0);
+    CgSolver<CsrMatrixGpu, VectorGpu> solver_gpu(matrix_gpu, rhs_gpu);
+    solver_gpu.solve(res_gpu);
+
 
     return 0;
 }

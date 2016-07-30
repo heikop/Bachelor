@@ -10,6 +10,6 @@ struct FullTriangle { size_t ID; Node nodeA; Node nodeB; Node nodeC; };
 template<typename scalar> void malloc_cuda(scalar** devPtr, size_t size);
 template<typename scalar> void free_cuda(scalar* devPtr);
 void memcpy_cuda(void* dst, const void* src, size_t count, memcpyKind kind);
-
+//void get_kernel_config(void* const numblocks, void* const numthreads, size_t totalthreads); // both void pointers have to point to a dim3 variable
 
 #endif

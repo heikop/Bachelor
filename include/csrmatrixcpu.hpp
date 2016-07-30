@@ -7,6 +7,7 @@
 
 #include "global.hpp"
 #include "mpihandler.hpp"
+#include "vectorcpu.hpp"
 
 class CsrMatrixCpu
 {
@@ -25,6 +26,8 @@ public:
     void add_local(const size_t, const size_t, const float);
     void set_global(const size_t, const size_t, const float);
     void add_global(const size_t, const size_t, const float);
+
+    void multvec(const VectorCpu&, VectorCpu&) const;
 
     void print_local_data(const size_t firstindex);
 //private:
