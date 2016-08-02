@@ -42,6 +42,13 @@ __global__ void atomic(const size_t* const rowptr, const size_t* const colind, f
         add_local_atomic(rowptr, colind, values, elem.nodeC.ID, elem.nodeB.ID, (gradC[0]*gradB[0] + gradC[1]*gradB[1]) / 2.0 / detB);
         add_local_atomic(rowptr, colind, values, elem.nodeC.ID, elem.nodeC.ID, (gradC[0]*gradC[0] + gradC[1]*gradC[1]) / 2.0 / detB);
     }
+__syncthreads();
+if (pos_of_elem == 0)
+{
+for(size_t i{1}; i < rowptr[1]; ++i)
+values[i] = 0.0;
+values[0] = 1.0;
+}
 }
 
 void assemble_atomic(size_t* d_rowptr, size_t* d_colind, float* d_values, size_t numrows, FullTriangle* h_elements, size_t numelem)

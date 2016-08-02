@@ -31,4 +31,8 @@ void assemble_cpu_elem(CsrMatrixCpu& matrix, std::vector<FullTriangle>& elements
         matrix.add_local(elem.nodeC.ID, elem.nodeB.ID, (gradC[0]*gradB[0] + gradC[1]*gradB[1]) / 2.0 / detB);
         matrix.add_local(elem.nodeC.ID, elem.nodeC.ID, (gradC[0]*gradC[0] + gradC[1]*gradC[1]) / 2.0 / detB);
     }
+    for (size_t i{1}; i < matrix._rowptr[1]; ++i)
+        matrix._values[i] = 0.0;
+    matrix._values[0] = 1.0;
+    std::cout << matrix._colind[0] << std::endl;
 }

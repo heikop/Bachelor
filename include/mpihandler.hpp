@@ -1,3 +1,4 @@
+/*
 #ifndef __MPIHANDLER_HPP_
 #define __MPIHANDLER_HPP_
 
@@ -10,15 +11,11 @@ class MpiHandler
 {
 public:
     MpiHandler();
-    ~MpiHandler();
-    /*
-    MpiHandler();
     MpiHandler(const MpiHandler&) = delete;
     MpiHandler(MpiHandler&&) = delete;
     ~MpiHandler();
     MpiHandler& operator=(const MpiHandler&) = delete;
     MpiHandler& operator=(MpiHandler&&) = delete;
-    */
 
     void catch_call(int line, std::string file, const std::exception& ex);
 
@@ -37,3 +34,4 @@ extern MpiHandler __mpi_instance__;
                    { __mpi_instance__.catch_call(__LINE__, __FILE__, ex); } 
 
 #endif//__MPIHANDLER_HPP_
+*/

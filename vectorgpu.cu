@@ -157,17 +157,21 @@ float VectorGpu::dot_vec(const VectorGpu& other) const
 {
     assert(_size == other._size);
     dim3 numblocks, numthreads;
-    float res{0.0};
+    float* d_res;
+    malloc_cuda(&d_res, sizeof(float));
     get_kernel_config(&numblocks, &numthreads, _size);
     float* perblockres;
     malloc_cuda(&perblockres, numblocks.x*sizeof(float));
 
-    vector_dot_vec_kernel<<<numblocks, numthreads, numthreads.x*sizeof(float)>>>(&res, _values, other._values, _size);
-    block_res_to_glob_res<<<1, 1>>>(&res, perblockres, numblocks.x);
+    vector_dot_vec_kernel<<<numblocks, numthreads, numthreads.x*sizeof(float)>>>(perblockres, _values, other._values, _size);
+    block_res_to_glob_res<<<1, 1>>>(d_res, perblockres, numblocks.x);
 
     free_cuda(perblockres);
 
-    return res;
+    float h_res{0.0};
+    memcpy_cuda(&h_res, d_res, sizeof(float), d2h);
+    free_cuda(d_res);
+    return h_res;
 }
 
 //***** l2norm2 *****//
@@ -197,17 +201,19 @@ __global__ void vector_l2norm2_kernel(float* const perblockres, const float* con
 float VectorGpu::l2norm2() const
 {
     dim3 numblocks, numthreads;
-    float res{0.0};
+    float* d_res;
+    malloc_cuda(&d_res, sizeof(float));
     get_kernel_config(&numblocks, &numthreads, _size);
     float* perblockres;
     malloc_cuda(&perblockres, numblocks.x*sizeof(float));
 
-    vector_l2norm2_kernel<<<numblocks, numthreads, numthreads.x*sizeof(float)>>>(&res, _values, _size);
-    block_res_to_glob_res<<<1, 1>>>(&res, perblockres, numblocks.x);
+    vector_l2norm2_kernel<<<numblocks, numthreads, numthreads.x*sizeof(float)>>>(perblockres, _values, _size);
+    block_res_to_glob_res<<<1, 1>>>(d_res, perblockres, numblocks.x);
 
-    free_cuda(perblockres);
-
-    return res;
+    float h_res{0.0};
+    memcpy_cuda(&h_res, d_res, sizeof(float), d2h);
+    free_cuda(d_res);
+    return h_res;
 }
 
 //***** constructors *****//

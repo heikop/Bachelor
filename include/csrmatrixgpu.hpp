@@ -30,7 +30,7 @@ public:
 
     void multvec(const VectorGpu&, VectorGpu&) const;
 
-    void print_local_data(const size_t firstindex);
+    void print_local_data(const size_t firstindex) const;
 //private:
     size_t _numrows, _numcols;
     size_t* _rowptr;

@@ -9,11 +9,11 @@ template<typename mtype, typename vtype> //TODO not all should be allowed
 class CgSolver
 {
 public:
-    CgSolver(mtype&, vtype&);
+    CgSolver(const mtype&, const vtype&);
     void solve(vtype&);
 //private:
-    mtype& _matrix;
-    vtype& _rhs;
+    const mtype _matrix; // TOCHECK why no references possible?
+    const vtype _rhs;
 };
 
 #include "cgsolver.tpp"

@@ -14,6 +14,35 @@ CsrMatrixGpu::CsrMatrixGpu(const size_t size):
     malloc_cuda(&_rowptr, (size+1)*sizeof(size_t));
 }
 
+CsrMatrixGpu::CsrMatrixGpu(const CsrMatrixGpu& other):
+    _numrows(other._numrows), _numcols(other._numcols)
+{
+    size_t numvalues{0};
+    memcpy_cuda(&numvalues, other._rowptr+_numrows, sizeof(size_t), d2h);
+
+    malloc_cuda(&_rowptr, (_numrows+1)*sizeof(size_t));
+    memcpy_cuda(_rowptr, other._rowptr, (_numrows+1)*sizeof(size_t), d2d);
+    malloc_cuda(&_colind, numvalues*sizeof(size_t));
+    memcpy_cuda(_colind, other._colind, numvalues*sizeof(size_t), d2d);
+    malloc_cuda(&_values, numvalues*sizeof(float));
+    memcpy_cuda(_values, other._values, numvalues*sizeof(float), d2d);
+}
+
+CsrMatrixGpu::CsrMatrixGpu(CsrMatrixGpu&& other):
+    _numrows(other._numrows), _numcols(other._numcols)
+{
+std::cout << "copy and delete" << std::endl;
+    _rowptr = other._rowptr;
+    _colind = other._colind;
+    _values = other._values;
+
+    other._numrows = 0;
+    other._numcols = 0;
+    other._rowptr = nullptr;
+    other._colind = nullptr;
+    other._values = nullptr;
+}
+
 CsrMatrixGpu::~CsrMatrixGpu()
 {
     free_cuda(_rowptr);
@@ -131,7 +160,7 @@ void CsrMatrixGpu::add_local_atomic(const size_t row, const size_t col, const fl
     //atomicAdd(&_values[pos_to_insert], val);
 }
 
-void CsrMatrixGpu::print_local_data(const size_t firstindex=0)
+void CsrMatrixGpu::print_local_data(const size_t firstindex=0) const
 {
     size_t* h_rowptr = new size_t[_numrows+1];
     memcpy_cuda(h_rowptr, _rowptr, (_numrows+1)*sizeof(size_t), d2h);

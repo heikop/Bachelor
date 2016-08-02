@@ -1,3 +1,4 @@
+/*
 #include "include/mpihandler.hpp"
 
 MpiHandler::MpiHandler()
@@ -32,3 +33,4 @@ bool MpiHandler::is_last()
 {
     return _rank == _size - 1;
 }//bool MpiHandler::is_last()
+*/

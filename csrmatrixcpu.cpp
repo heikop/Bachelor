@@ -14,6 +14,22 @@ CsrMatrixCpu::CsrMatrixCpu(const size_t size):
     _rowptr = new size_t[size+1];
 }
 
+CsrMatrixCpu::CsrMatrixCpu(const CsrMatrixCpu& other):
+    _numrows(other._numrows), _numcols(other._numcols),
+    _colind(nullptr), _values(nullptr)
+{
+    _rowptr = new size_t[_numrows+1];
+    for (size_t i(0); i <= _numrows; ++i)
+        _rowptr[i] = other._rowptr[i];
+    _colind = new size_t[_rowptr[_numrows]];
+    _values = new float[_rowptr[_numrows]];
+    for (size_t i(0); i < _rowptr[_numrows]; ++i)
+    {
+        _colind[i] = other._colind[i];
+        _values[i] = other._values[i];
+    }
+}
+
 CsrMatrixCpu::~CsrMatrixCpu()
 {
     delete[] _rowptr;

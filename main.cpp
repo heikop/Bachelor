@@ -21,24 +21,24 @@ int main()
     vector<Triangle> elements;
     vector<FullTriangle> fullElements;
     //readmesh("../data/square_evenfiner.msh", nodes, elements, fullElements);
-    readmesh("../data/square_ultrafine.msh", nodes, elements, fullElements);
+    readmesh("../data/square_rough.msh", nodes, elements, fullElements);
     std::cout << "read mesh" << std::endl;
     fillFullElements(nodes, elements, fullElements);
     time[0] -= clock();
-    std::cout << "startup: " << float(-time[0]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
+//    std::cout << "startup: " << float(-time[0]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
     std::cout << "start assembling cpu" << std::endl;
     time[1] = clock();
     CsrMatrixCpu matrix_cpu(nodes.size());
     matrix_cpu.createStructure(elements.data(), elements.size());
     time[1] -= clock();
-    std::cout << "createStructure: " << float(-time[1]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
+//    std::cout << "createStructure: " << float(-time[1]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
     time[2] = clock();
     assemble_cpu_elem(matrix_cpu, fullElements);
     time[2] -= clock();
-    std::cout << "assembly: " << float(-time[2]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
-    std::cout << "cpu total: " << float(-time[1]-time[2]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
+//    std::cout << "assembly: " << float(-time[2]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
+//    std::cout << "cpu total: " << float(-time[1]-time[2]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 //    matrix_cpu.print_local_data(1);
 
     std::cout << "start assembling gpu" << std::endl;
@@ -46,16 +46,17 @@ int main()
     CsrMatrixGpu matrix_gpu(nodes.size());
     matrix_gpu.createStructure(elements.data(), elements.size());
     time[3] -= clock();
-    std::cout << "createStructure: " << float(-time[3]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
+//    std::cout << "createStructure: " << float(-time[3]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
     time[4] = clock();
     assemble_gpu_atomic(matrix_gpu, fullElements);
     time[4] -= clock();
-    std::cout << "assembly: " << float(-time[4]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
-    std::cout << "gpu total: " << float(-time[3]-time[4]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
+//    std::cout << "assembly: " << float(-time[4]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
+//    std::cout << "gpu total: " << float(-time[3]-time[4]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 //    matrix_gpu.print_local_data(1);
 
     // check
+/*
     size_t* rowptr_gpu_check = new size_t[matrix_gpu._numrows+1];
     memcpy_cuda(rowptr_gpu_check, matrix_gpu._rowptr, (matrix_gpu._numrows+1)*sizeof(size_t), d2h);
     for (size_t i(0); i <= matrix_gpu._numrows; ++i)
@@ -71,6 +72,7 @@ int main()
     delete[] rowptr_gpu_check;
     delete[] colind_gpu_check;
     delete[] values_gpu_check;
+*/
 
     // nice output
     float duration[5];
@@ -87,6 +89,7 @@ int main()
 
 
     // calculation - solving LGS
+std::cout << "LGS" << std::endl;
     nodes.clear();
     elements.clear();
     fullElements.clear();
@@ -98,6 +101,8 @@ int main()
     VectorGpu res_gpu(matrix_gpu._numrows, 1.0);
     CgSolver<CsrMatrixGpu, VectorGpu> solver_gpu(matrix_gpu, rhs_gpu);
     solver_gpu.solve(res_gpu);
+//res_cpu.print_local_data(1);
+//res_gpu.print_local_data(1);
 
 
     return 0;

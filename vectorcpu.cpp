@@ -1,4 +1,5 @@
 #include "include/vectorcpu.hpp"
+#include <cstring>
 
 VectorCpu::VectorCpu(const size_t size, const float value):
     _size(size)
@@ -70,7 +71,7 @@ void VectorCpu::copyscal(const float scal, const VectorCpu& other)
         for (size_t i{0}; i < _size; ++i)
             _values[i] = 0.0;
     else if (scal == 1.0)
-        memcpy(_values, other._values, _size*sizeof(float));
+        std::memcpy(_values, other._values, _size*sizeof(float));
     else
         for (size_t i{0}; i < _size; ++i)
             _values[i] = scal * other._values[i];
@@ -122,7 +123,7 @@ void VectorCpu::axpy(const float a, const VectorCpu& x)
             _values[i] += x._values[i];
     else if (a != 0.0)
         for (size_t i{0}; i < _size; ++i)
-            _values[i] += x._values[i];
+            _values[i] += a * x._values[i];
 }
 
 void VectorCpu::axpby(const float a, const VectorCpu& x, const float b)
