@@ -18,4 +18,5 @@ void CsrMatrixGpu::multvec(const VectorGpu& vec, VectorGpu& res) const
     dim3 numblocks, numthreads;
     get_kernel_config(&numblocks, &numthreads, _numrows);
     csrmatrix_multvec_kernel<<<numblocks, numthreads>>>(_rowptr, _colind, _values, vec._values, res._values, _numrows);
+    cudaDeviceSynchronize();
 }

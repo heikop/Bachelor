@@ -21,7 +21,7 @@ int main()
     vector<Triangle> elements;
     vector<FullTriangle> fullElements;
     //readmesh("../data/square_evenfiner.msh", nodes, elements, fullElements);
-    readmesh("../data/square_rough.msh", nodes, elements, fullElements);
+    readmesh("../data/square_fine.msh", nodes, elements, fullElements);
     std::cout << "read mesh" << std::endl;
     fillFullElements(nodes, elements, fullElements);
     time[0] -= clock();

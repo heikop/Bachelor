@@ -65,6 +65,7 @@ void assemble_atomic(size_t* d_rowptr, size_t* d_colind, float* d_values, size_t
     dim3 numthreads(props.maxThreadsDim[0], 1, 1);
     dim3 numblocks(numelem / numthreads.x + (numelem%numthreads.x == 0 ? 0 : 1), 1, 1);
     atomic<<<numblocks, numthreads>>>(d_rowptr, d_colind, d_values, numrows, d_elements, numelem);
+    cudaDeviceSynchronize();
 
     free_cuda(d_elements);
 }

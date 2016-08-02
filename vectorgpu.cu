@@ -44,6 +44,7 @@ void VectorGpu::scal(const float scalar)
             vector_set_zero_kernel<<<numblocks, numthreads>>>(_values, _size);
         else
             vector_scal_kernel<<<numblocks, numthreads>>>(scalar, _values, _size);
+        cudaDeviceSynchronize();
     }
 }
 
@@ -72,6 +73,7 @@ void VectorGpu::axpy(const float a, const VectorGpu& x)
         vector_add_kernel<<<numblocks, numthreads>>>(x._values, _values, _size);
     else if (a != 0.0)
         vector_axpy_kernel<<<numblocks, numthreads>>>(a, x._values, _values, _size);
+    cudaDeviceSynchronize();
 }
 
 //***** axpby *****//
@@ -107,6 +109,7 @@ void VectorGpu::axpby(const float a, const VectorGpu& x, const float b)
             vector_xpby_kernel<<<numblocks, numthreads>>>(x._values, b, _values, _size);
         else
             vector_axpby_kernel<<<numblocks, numthreads>>>(a, x._values, b, _values, _size);
+        cudaDeviceSynchronize();
     }
 }
 
@@ -126,6 +129,7 @@ void VectorGpu::copyscal(const float scalar, const VectorGpu& other)
         else
         {} //TODO TODISCUSS memcpy and then scal kernel or copyscal kernel?
             //vector_copyscal_kernel<<<numblocks, numthreads>>>(scalar, _values, _size);
+        cudaDeviceSynchronize();
     }
 }
 
@@ -164,7 +168,9 @@ float VectorGpu::dot_vec(const VectorGpu& other) const
     malloc_cuda(&perblockres, numblocks.x*sizeof(float));
 
     vector_dot_vec_kernel<<<numblocks, numthreads, numthreads.x*sizeof(float)>>>(perblockres, _values, other._values, _size);
+    cudaDeviceSynchronize();
     block_res_to_glob_res<<<1, 1>>>(d_res, perblockres, numblocks.x);
+    cudaDeviceSynchronize();
 
     free_cuda(perblockres);
 
@@ -208,7 +214,9 @@ float VectorGpu::l2norm2() const
     malloc_cuda(&perblockres, numblocks.x*sizeof(float));
 
     vector_l2norm2_kernel<<<numblocks, numthreads, numthreads.x*sizeof(float)>>>(perblockres, _values, _size);
+    cudaDeviceSynchronize();
     block_res_to_glob_res<<<1, 1>>>(d_res, perblockres, numblocks.x);
+    cudaDeviceSynchronize();
 
     float h_res{0.0};
     memcpy_cuda(&h_res, d_res, sizeof(float), d2h);
@@ -228,6 +236,7 @@ VectorGpu::VectorGpu(const size_t size, const float value):
         vector_set_zero_kernel<<<numblocks, numthreads>>>(_values, _size);
     else
         vector_set_scalar_kernel<<<numblocks, numthreads>>>(value, _values, _size);
+    cudaDeviceSynchronize();
 }
 
 //TODO
