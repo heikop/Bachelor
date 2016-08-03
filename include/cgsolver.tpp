@@ -27,7 +27,7 @@ void CgSolver<mtype, vtype>::solve(vtype& res)
     float beta{0.0};
     for (size_t it{0}; alpha > tol && it < maxit; ++it)
     {
-std::cout << "after " << it << " iteratons" << ": " << alpha << std::endl;
+//std::cout << "after " << it << " iteratons" << ": " << alpha << std::endl;
         _matrix.multvec(direction, mat_mult_dir);
         beta = 1.0 / alpha;
         alpha /= direction.dot_vec(mat_mult_dir);

@@ -1,4 +1,5 @@
 #include "include/global.hpp"
+#include "include/global.cuh"
 #include <cassert>
 
 __device__ void add_local_atomic(const size_t* const rowptr, const size_t* const colind, float* const values, const size_t row, const size_t col, const float val)
@@ -42,29 +43,37 @@ __global__ void atomic(const size_t* const rowptr, const size_t* const colind, f
         add_local_atomic(rowptr, colind, values, elem.nodeC.ID, elem.nodeB.ID, (gradC[0]*gradB[0] + gradC[1]*gradB[1]) / 2.0 / detB);
         add_local_atomic(rowptr, colind, values, elem.nodeC.ID, elem.nodeC.ID, (gradC[0]*gradC[0] + gradC[1]*gradC[1]) / 2.0 / detB);
     }
-__syncthreads();
-if (pos_of_elem == 0)
-{
-for(size_t i{1}; i < rowptr[1]; ++i)
-values[i] = 0.0;
-values[0] = 1.0;
-}
 }
 
-void assemble_atomic(size_t* d_rowptr, size_t* d_colind, float* d_values, size_t numrows, FullTriangle* h_elements, size_t numelem)
+__global__ void boundary(const size_t* const rowptr, const size_t* const colind, float* const values, const size_t numrows, const size_t* const boundaryNodes, const size_t numboundaryNodes)
+{
+    size_t id(blockDim.x*blockIdx.x + threadIdx.x);
+    if (id < numboundaryNodes)
+    {
+        size_t b_id{boundaryNodes[id]};
+        for (size_t i{rowptr[b_id]}; i < rowptr[b_id+1]; ++i)
+            values[i] = (colind[i] == b_id ? 1.0 : 0.0);
+    }
+}
+
+void assemble_atomic(size_t* d_rowptr, size_t* d_colind, float* d_values, size_t numrows, FullTriangle* h_elements, size_t numelem, size_t* h_boundaryNodes, size_t numboundaryNodes)
 {
     FullTriangle* d_elements;
     malloc_cuda(&d_elements, numelem*sizeof(FullTriangle));
     memcpy_cuda(d_elements, h_elements, numelem*sizeof(FullTriangle), h2d);
 
-    int devCount;
-    cudaGetDeviceCount(&devCount);
-    assert(devCount > 0);
-    cudaDeviceProp props;
-    cudaGetDeviceProperties(&props, 0);
-    dim3 numthreads(props.maxThreadsDim[0], 1, 1);
-    dim3 numblocks(numelem / numthreads.x + (numelem%numthreads.x == 0 ? 0 : 1), 1, 1);
+    dim3 numthreads;
+    dim3 numblocks;
+    get_kernel_config(&numblocks, &numthreads, numelem);
     atomic<<<numblocks, numthreads>>>(d_rowptr, d_colind, d_values, numrows, d_elements, numelem);
+    get_kernel_config(&numblocks, &numthreads, numboundaryNodes);
+    cudaDeviceSynchronize();
+    free_cuda(d_elements);
+
+    size_t* d_boundaryNodes;
+    malloc_cuda(&d_boundaryNodes, numboundaryNodes*sizeof(size_t));
+    memcpy_cuda(d_boundaryNodes, h_boundaryNodes, numboundaryNodes*sizeof(size_t), h2d);
+    boundary<<<numblocks, numthreads>>>(d_rowptr, d_colind, d_values, numrows, d_boundaryNodes, numboundaryNodes);
     cudaDeviceSynchronize();
 
     free_cuda(d_elements);

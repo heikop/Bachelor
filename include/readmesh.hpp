@@ -8,7 +8,7 @@
 
 using namespace std;
 
-void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle>& elements, std::vector<FullTriangle>& fullElements)
+void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle>& elements, std::vector<FullTriangle>& fullElements, std::vector<size_t>& boundaryNodes)
 {
     ifstream fin(filename.c_str());
 
@@ -45,12 +45,23 @@ void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle>& 
             new_element.nodeC = C-1;
             elements.push_back(new_element);
         }
+        else if (type == 1)
+        {
+            size_t number_of_tags; fin >> number_of_tags;
+            size_t tagtrash;
+            for (size_t j(0); j < number_of_tags; ++j) fin >> tagtrash;
+            size_t a, b;
+            fin >> a >> b;
+            boundaryNodes.push_back(a);
+            boundaryNodes.push_back(b);
+        }
         else
             fin.ignore(256, '\n');
     }
 
     fin.close();
     elements.shrink_to_fit();
+    boundaryNodes.shrink_to_fit();
 }
 
 #endif

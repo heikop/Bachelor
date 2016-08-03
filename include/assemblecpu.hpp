@@ -7,6 +7,6 @@
 #include "csrmatrixcpu.hpp"
 #include "global.hpp"
 
-void assemble_cpu_elem(CsrMatrixCpu& matrix, std::vector<FullTriangle>& elements);
+void assemble_cpu_elem(CsrMatrixCpu& matrix, std::vector<FullTriangle>& elements, std::vector<size_t>& boundaryNodes);
 
 #endif

@@ -20,10 +20,12 @@ int main()
     vector<Node> nodes;
     vector<Triangle> elements;
     vector<FullTriangle> fullElements;
-    //readmesh("../data/square_evenfiner.msh", nodes, elements, fullElements);
-    readmesh("../data/square_fine.msh", nodes, elements, fullElements);
+    vector<size_t> boundaryNodes;
+    //readmesh("../data/square.msh", nodes, elements, fullElements, boundaryNodes);
+    readmesh("../data/square_fine.msh", nodes, elements, fullElements, boundaryNodes);
     std::cout << "read mesh" << std::endl;
     fillFullElements(nodes, elements, fullElements);
+std::cout << nodes.size() << ", " << elements.size() << std::endl;
     time[0] -= clock();
 //    std::cout << "startup: " << float(-time[0]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
@@ -35,7 +37,7 @@ int main()
 //    std::cout << "createStructure: " << float(-time[1]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
     time[2] = clock();
-    assemble_cpu_elem(matrix_cpu, fullElements);
+    assemble_cpu_elem(matrix_cpu, fullElements, boundaryNodes);
     time[2] -= clock();
 //    std::cout << "assembly: " << float(-time[2]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 //    std::cout << "cpu total: " << float(-time[1]-time[2]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
@@ -49,14 +51,13 @@ int main()
 //    std::cout << "createStructure: " << float(-time[3]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
     time[4] = clock();
-    assemble_gpu_atomic(matrix_gpu, fullElements);
+    assemble_gpu_atomic(matrix_gpu, fullElements, boundaryNodes);
     time[4] -= clock();
 //    std::cout << "assembly: " << float(-time[4]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 //    std::cout << "gpu total: " << float(-time[3]-time[4]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 //    matrix_gpu.print_local_data(1);
 
-    // check
-/*
+    // matrix check
     size_t* rowptr_gpu_check = new size_t[matrix_gpu._numrows+1];
     memcpy_cuda(rowptr_gpu_check, matrix_gpu._rowptr, (matrix_gpu._numrows+1)*sizeof(size_t), d2h);
     for (size_t i(0); i <= matrix_gpu._numrows; ++i)
@@ -72,7 +73,6 @@ int main()
     delete[] rowptr_gpu_check;
     delete[] colind_gpu_check;
     delete[] values_gpu_check;
-*/
 
     // nice output
     float duration[5];
@@ -104,6 +104,15 @@ std::cout << "LGS" << std::endl;
 //res_cpu.print_local_data(1);
 //res_gpu.print_local_data(1);
 
+    // solution check
+    float* res_gpu_check = new float[res_gpu._size];
+    memcpy_cuda(res_gpu_check, res_gpu._values, res_gpu._size*sizeof(float), d2h);
+    for (size_t i(0); i < res_gpu._size; ++i)
+{
+        if(std::abs(res_gpu_check[i] - res_cpu._values[i]) > 1.0e-3)
+std::cout << i << ": " << std::abs(res_gpu_check[i] - res_cpu._values[i]) << std::endl;
+}
+    delete[] res_gpu_check;
 
     return 0;
 }

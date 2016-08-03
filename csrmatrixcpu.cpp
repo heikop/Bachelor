@@ -1,4 +1,5 @@
 #include "include/csrmatrixcpu.hpp"
+#include <cstring>
 
 CsrMatrixCpu::CsrMatrixCpu(const size_t numrows, const size_t numcols):
     _numrows(numrows), _numcols(numcols),
@@ -63,8 +64,8 @@ void CsrMatrixCpu::createStructure(const Triangle* const elements, const size_t 
         }
     }
 
-    size_t num_values(0);
-    for (size_t i(0); i < _numrows; ++i)
+    size_t num_values{0};
+    for (size_t i{0}; i < _numrows; ++i)
     {
         _rowptr[i] = num_values;
         num_values += lol[i].size();
@@ -75,36 +76,18 @@ void CsrMatrixCpu::createStructure(const Triangle* const elements, const size_t 
     _colind = new size_t[num_values];
     _values = new float[num_values];
 
-    size_t current_pos(0);
+    size_t current_pos{0};
+    // if, then not essentially faster
     for (const auto& row : lol)
-        for (const auto col : row)
-            _colind[current_pos++] = col;
-    for (size_t i(0); i < num_values; ++i)
-        _values[i] = 0.0;
-
-
-    // test output
-    /*
-    for (size_t row(0); row < lol.size(); ++row)
     {
-        std::cout << row << "(): ";
-        for (size_t col(0); col < lol[row].size(); ++col)
-        {
-            std::cout << lol[row][col] << ", ";
-        }
-        std::cout << std::endl;
+        std::memcpy(_colind + current_pos, row.data(), row.size()*sizeof(size_t));
+        current_pos += row.size();
     }
-
-    for (size_t i(0); i <= _numrows; ++i)
-        std::cout << _rowptr[i] << ", ";
-    std::cout << std::endl;
-    for (size_t i(0); i < num_values; ++i)
-        std::cout << _colind[i] << ", ";
-    std::cout << std::endl;
-    for (size_t i(0); i < num_values; ++i)
-        std::cout << _values[i] << ", ";
-    std::cout << std::endl;
-    */
+    //for (const auto& row : lol)
+    //    for (const auto col : row)
+    //        _colind[current_pos++] = col;
+    for (size_t i{0}; i < num_values; ++i)
+        _values[i] = 0.0;
 }
 
 void CsrMatrixCpu::set_local(const size_t row, const size_t col, const float val)
