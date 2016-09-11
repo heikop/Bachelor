@@ -78,14 +78,14 @@ void CsrMatrixCpu::createStructure(const Triangle* const elements, const size_t 
 
     size_t current_pos{0};
     // if, then not essentially faster
+//    for (const auto& row : lol)
+//    {
+//        std::memcpy(_colind + current_pos, row.data(), row.size()*sizeof(size_t));
+//        current_pos += row.size();
+//    }
     for (const auto& row : lol)
-    {
-        std::memcpy(_colind + current_pos, row.data(), row.size()*sizeof(size_t));
-        current_pos += row.size();
-    }
-    //for (const auto& row : lol)
-    //    for (const auto col : row)
-    //        _colind[current_pos++] = col;
+        for (const auto col : row)
+            _colind[current_pos++] = col;
     for (size_t i{0}; i < num_values; ++i)
         _values[i] = 0.0;
 }
