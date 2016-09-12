@@ -90,7 +90,7 @@ void CsrMatrixCpu::createStructure(const Triangle* const elements, const size_t 
         _values[i] = 0.0;
 }
 
-void CsrMatrixCpu::createStructureFast(const Triangle* const elements, const size_t num_elem)
+void CsrMatrixCpu::createStructure_fast(const Triangle* const elements, const size_t num_elem)
 {
     const size_t max_rowlength{20};
 
@@ -111,10 +111,10 @@ void CsrMatrixCpu::createStructureFast(const Triangle* const elements, const siz
                 size_t j(0);
                 while (j < num_nonzeros[a] && lol[a][j] != b)
                     ++j;
-                if (lol[a][j] != b)
+                if (num_nonzeros[a] == j)
                 {
                     ++num_nonzeros[a];
-                    assert(num_nonzeros <= 20);
+                    assert(num_nonzeros[a] <= 20);
                     lol[a][j] = b;
                 }
             }
@@ -123,15 +123,16 @@ void CsrMatrixCpu::createStructureFast(const Triangle* const elements, const siz
 
     for (size_t i{0}; i < _numrows; ++i)
         for (size_t a{num_nonzeros[i]-1}; a > 0; --a)
-            for (size_t b{a}; b > 0; --b)
-                if (lol[i][b] < lol[i][b-1])
+            for (size_t b{0}; b < a; ++b)
+                if (lol[i][b] > lol[i][b+1])
                 {
                     size_t tmp{lol[i][b]};
-                    lol[i][b] = lol[i][b-1];
-                    lol[i][b-1] = tmp;
+                    lol[i][b] = lol[i][b+1];
+                    lol[i][b+1] = tmp;
                 }
 
     size_t num_values{0};
+std::cout << num_nonzeros[0] << std::endl;
     for (size_t i{0}; i < _numrows; ++i)
     {
         _rowptr[i] = num_values;
@@ -150,9 +151,9 @@ void CsrMatrixCpu::createStructureFast(const Triangle* const elements, const siz
 //        std::memcpy(_colind + current_pos, row.data(), row.size()*sizeof(size_t));
 //        current_pos += row.size();
 //    }
-    for (const auto& row : lol)
+    for (size_t row{0}; row < _numrows; ++row)
         for (size_t col{0}; col < num_nonzeros[row]; ++col)
-            _colind[current_pos++] = row[col];
+            _colind[current_pos++] = lol[row][col];
     for (size_t i{0}; i < num_values; ++i)
         _values[i] = 0.0;
 }

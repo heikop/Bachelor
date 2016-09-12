@@ -21,7 +21,7 @@ int main()
     vector<Triangle> elements;
     vector<FullTriangle> fullElements;
     vector<size_t> boundaryNodes;
-    readmesh("../data/square_fine.msh", nodes, elements, fullElements, boundaryNodes);
+    readmesh("../data/square_evenfiner.msh", nodes, elements, fullElements, boundaryNodes);
     std::cout << "read mesh" << std::endl;
     fillFullElements(nodes, elements, fullElements);
 std::cout << nodes.size() << ", " << elements.size() << std::endl;
@@ -36,18 +36,28 @@ std::cout << nodes.size() << ", " << elements.size() << std::endl;
 
     // fast
     std::cout << "creating structure fast" << std::endl;
-    time[1] = clock();
+    time[2] = clock();
     CsrMatrixCpu matrix_cpu_fast(nodes.size());
-    matrix_cpu_fast.createStructure(elements.data(), elements.size());
-    time[1] -= clock();
+    matrix_cpu_fast.createStructure_fast(elements.data(), elements.size());
+    time[2] -= clock();
 
     // check
     for (size_t row{0}; row <= matrix_cpu._numrows; ++row)
-        assert ( *(matrix_cpu._rowptr) != *(matrix_cpu_fast._rowptr) )
+        assert ( matrix_cpu._rowptr[row] == matrix_cpu_fast._rowptr[row] );
     std::cout << "_rowptr identical" << std::endl;
-    for (size_t col{0}; col < _matrix_cpu._rowptr[matrix_cpu._numrows]; ++row)
-        assert ( *(matrix_cpu._colind) != *(matrix_cpu_fast._colind) )
+    for (size_t col{0}; col < matrix_cpu._rowptr[matrix_cpu._numrows]; ++col)
+        assert ( *(matrix_cpu._colind) == *(matrix_cpu_fast._colind) );
     std::cout << "_colind identical" << std::endl;
+
+    float duration[3];
+    duration[0] = float(-time[0]) / CLOCKS_PER_SEC * 1000.0f;
+    duration[1] = float(-time[1]) / CLOCKS_PER_SEC * 1000.0f;
+    duration[2] = float(-time[2]) / CLOCKS_PER_SEC * 1000.0f;
+    std::cout << std::endl;
+    std::cout.width(7); std::cout << "part" << "   "; std::cout.width(6); std::cout << "total" << " | ";                  std::cout << std::endl;
+    std::cout.width(7); std::cout << "mesh" << " : "; std::cout.width(6); std::cout << duration[0] << " | ";              std::cout << std::endl;
+    std::cout.width(7); std::cout << "slow" << " : "; std::cout.width(6); std::cout << duration[1] << " | "; std::cout.width(7); std::cout << std::endl;
+    std::cout.width(7); std::cout << "fast" << " : "; std::cout.width(6); std::cout << duration[2] << " | "; std::cout.width(7); std::cout << std::endl;
 
     return 0;
 }
