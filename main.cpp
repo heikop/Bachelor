@@ -12,6 +12,7 @@
 
 void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<FullTriangle>& fullElements);
 
+/*
 int main()
 {
     clock_t time[5];
@@ -61,8 +62,8 @@ std::cout << nodes.size() << ", " << elements.size() << std::endl;
 
     return 0;
 }
+*/
 
-/*
 int main()
 {
     clock_t time[5];
@@ -73,7 +74,7 @@ int main()
     vector<FullTriangle> fullElements;
     vector<size_t> boundaryNodes;
     //readmesh("../data/square.msh", nodes, elements, fullElements, boundaryNodes);
-    readmesh("../data/square_fine.msh", nodes, elements, fullElements, boundaryNodes);
+    readmesh("../data/square_evenfiner.msh", nodes, elements, fullElements, boundaryNodes);
     std::cout << "read mesh" << std::endl;
     fillFullElements(nodes, elements, fullElements);
 std::cout << nodes.size() << ", " << elements.size() << std::endl;
@@ -83,7 +84,7 @@ std::cout << nodes.size() << ", " << elements.size() << std::endl;
     std::cout << "start assembling cpu" << std::endl;
     time[1] = clock();
     CsrMatrixCpu matrix_cpu(nodes.size());
-    matrix_cpu.createStructure(elements.data(), elements.size());
+    matrix_cpu.createStructure_fast(elements.data(), elements.size());
     time[1] -= clock();
 //    std::cout << "createStructure: " << float(-time[1]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 
@@ -138,7 +139,7 @@ std::cout << nodes.size() << ", " << elements.size() << std::endl;
     std::cout.width(7); std::cout <<  "CPU" << " : "; std::cout.width(6); std::cout << duration[1]+duration[2] << " | "; std::cout.width(7); std::cout << duration[1] << ", "; std::cout.width(7); std::cout << duration[2]; std::cout << std::endl;
     std::cout.width(7); std::cout <<  "GPU" << " : "; std::cout.width(6); std::cout << duration[3]+duration[4] << " | "; std::cout.width(7); std::cout << duration[3] << ", "; std::cout.width(7); std::cout << duration[4]; std::cout << std::endl;
 
-
+/*
     // calculation - solving LGS
 std::cout << "LGS" << std::endl;
     nodes.clear();
@@ -164,10 +165,10 @@ std::cout << "LGS" << std::endl;
 std::cout << i << ": " << std::abs(res_gpu_check[i] - res_cpu._values[i]) << std::endl;
 }
     delete[] res_gpu_check;
+*/
 
     return 0;
 }
-*/
 
 void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<FullTriangle>& fullElements)
 {
