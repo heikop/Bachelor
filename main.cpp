@@ -21,6 +21,47 @@ int main()
     vector<Triangle> elements;
     vector<FullTriangle> fullElements;
     vector<size_t> boundaryNodes;
+    readmesh("../data/square_fine.msh", nodes, elements, fullElements, boundaryNodes);
+    std::cout << "read mesh" << std::endl;
+    fillFullElements(nodes, elements, fullElements);
+std::cout << nodes.size() << ", " << elements.size() << std::endl;
+    time[0] -= clock();
+
+    // slow
+    std::cout << "creating structure slow" << std::endl;
+    time[1] = clock();
+    CsrMatrixCpu matrix_cpu(nodes.size());
+    matrix_cpu.createStructure(elements.data(), elements.size());
+    time[1] -= clock();
+
+    // fast
+    std::cout << "creating structure fast" << std::endl;
+    time[1] = clock();
+    CsrMatrixCpu matrix_cpu_fast(nodes.size());
+    matrix_cpu_fast.createStructure(elements.data(), elements.size());
+    time[1] -= clock();
+
+    // check
+    for (size_t row{0}; row <= matrix_cpu._numrows; ++row)
+        assert ( *(matrix_cpu._rowptr) != *(matrix_cpu_fast._rowptr) )
+    std::cout << "_rowptr identical" << std::endl;
+    for (size_t col{0}; col < _matrix_cpu._rowptr[matrix_cpu._numrows]; ++row)
+        assert ( *(matrix_cpu._colind) != *(matrix_cpu_fast._colind) )
+    std::cout << "_colind identical" << std::endl;
+
+    return 0;
+}
+
+/*
+int main()
+{
+    clock_t time[5];
+    std::cout << "start demo" << std::endl;
+    time[0] = clock();
+    vector<Node> nodes;
+    vector<Triangle> elements;
+    vector<FullTriangle> fullElements;
+    vector<size_t> boundaryNodes;
     //readmesh("../data/square.msh", nodes, elements, fullElements, boundaryNodes);
     readmesh("../data/square_fine.msh", nodes, elements, fullElements, boundaryNodes);
     std::cout << "read mesh" << std::endl;
@@ -116,6 +157,7 @@ std::cout << i << ": " << std::abs(res_gpu_check[i] - res_cpu._values[i]) << std
 
     return 0;
 }
+*/
 
 void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<FullTriangle>& fullElements)
 {

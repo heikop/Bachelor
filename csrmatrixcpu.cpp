@@ -90,6 +90,73 @@ void CsrMatrixCpu::createStructure(const Triangle* const elements, const size_t 
         _values[i] = 0.0;
 }
 
+void CsrMatrixCpu::createStructureFast(const Triangle* const elements, const size_t num_elem)
+{
+    const size_t max_rowlength{20};
+
+    std::vector<size_t> num_nonzeros(_numrows, 0);
+    std::vector<std::vector<size_t>> lol(_numrows, std::vector<size_t>(20));
+    for (size_t i(0); i < num_elem; ++i)
+    {
+        size_t nodes[3];
+        nodes[0] = elements[i].nodeA;
+        nodes[1] = elements[i].nodeB;
+        nodes[2] = elements[i].nodeC;
+        for (size_t node1(0); node1 < 3; ++node1)
+        {
+            for (size_t node2(0); node2 < 3; ++node2)
+            {
+                size_t a(nodes[node1]);
+                size_t b(nodes[node2]);
+                size_t j(0);
+                while (j < num_nonzeros[a] && lol[a][j] != b)
+                    ++j;
+                if (lol[a][j] != b)
+                {
+                    ++num_nonzeros[a];
+                    assert(num_nonzeros <= 20);
+                    lol[a][j] = b;
+                }
+            }
+        }
+    }
+
+    for (size_t i{0}; i < _numrows; ++i)
+        for (size_t a{num_nonzeros[i]-1}; a > 0; --a)
+            for (size_t b{a}; b > 0; --b)
+                if (lol[i][b] < lol[i][b-1])
+                {
+                    size_t tmp{lol[i][b]};
+                    lol[i][b] = lol[i][b-1];
+                    lol[i][b-1] = tmp;
+                }
+
+    size_t num_values{0};
+    for (size_t i{0}; i < _numrows; ++i)
+    {
+        _rowptr[i] = num_values;
+        num_values += num_nonzeros[i];
+    }
+    _rowptr[_numrows] = num_values;
+    delete[] _colind;
+    delete[] _values;
+    _colind = new size_t[num_values];
+    _values = new float[num_values];
+
+    size_t current_pos{0};
+    // if, then not essentially faster
+//    for (const auto& row : lol)
+//    {
+//        std::memcpy(_colind + current_pos, row.data(), row.size()*sizeof(size_t));
+//        current_pos += row.size();
+//    }
+    for (const auto& row : lol)
+        for (size_t col{0}; col < num_nonzeros[row]; ++col)
+            _colind[current_pos++] = row[col];
+    for (size_t i{0}; i < num_values; ++i)
+        _values[i] = 0.0;
+}
+
 void CsrMatrixCpu::set_local(const size_t row, const size_t col, const float val)
 {
     assert(row < _numrows && col < _numcols);
