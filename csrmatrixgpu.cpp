@@ -28,6 +28,7 @@ CsrMatrixGpu::CsrMatrixGpu(const CsrMatrixGpu& other):
     memcpy_cuda(_values, other._values, numvalues*sizeof(float), d2d);
 }
 
+/*
 CsrMatrixGpu::CsrMatrixGpu(CsrMatrixGpu&& other):
     _numrows(other._numrows), _numcols(other._numcols)
 {
@@ -42,6 +43,7 @@ std::cout << "copy and delete" << std::endl;
     other._colind = nullptr;
     other._values = nullptr;
 }
+*/
 
 CsrMatrixGpu::~CsrMatrixGpu()
 {

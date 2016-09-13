@@ -84,7 +84,7 @@ std::cout << nodes.size() << ", " << elements.size() << std::endl;
     std::cout << "start assembling cpu" << std::endl;
     time[1] = clock();
     CsrMatrixCpu matrix_cpu(nodes.size());
-    matrix_cpu.createStructure_fast(elements.data(), elements.size());
+    matrix_cpu.createStructure(elements.data(), elements.size());
     time[1] -= clock();
 //    std::cout << "createStructure: " << float(-time[1]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
 

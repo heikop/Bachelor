@@ -14,10 +14,10 @@ class VectorGpu
 public:
     VectorGpu(const size_t size, const float val=0.0);
     VectorGpu(const VectorGpu&);
-    VectorGpu(VectorGpu&&);
+//    VectorGpu(VectorGpu&&);
     ~VectorGpu();
     VectorGpu operator=(const VectorGpu&);
-    VectorGpu operator=(VectorGpu&&);
+//    VectorGpu operator=(VectorGpu&&);
     void copy(const VectorGpu&);
     void copyscal(const float, const VectorGpu&);
 

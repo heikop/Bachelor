@@ -5,8 +5,8 @@
 
 __global__ void block_res_to_glob_res(float* res, float* perblockres, size_t numblocks) // for l2norm2 and dot product
 {
-    float tmpres{0.0};
-    for (size_t i{0}; i < numblocks; ++i)
+    float tmpres(0.0);
+    for (size_t i(0); i < numblocks; ++i)
         tmpres += perblockres[i];
     *res = tmpres;
 }
@@ -15,21 +15,21 @@ __global__ void block_res_to_glob_res(float* res, float* perblockres, size_t num
 
 __global__ void vector_scal_kernel(const float scalar, float* const values, const size_t size)
 {
-    size_t id{blockDim.x*blockIdx.x + threadIdx.x};
+    size_t id(blockDim.x*blockIdx.x + threadIdx.x);
     if (id < size)
         values[id] *= scalar;
 }
 
 __global__ void vector_set_scalar_kernel(const float scalar, float* const values, const size_t size)
 {
-    size_t id{blockDim.x*blockIdx.x + threadIdx.x};
+    size_t id(blockDim.x*blockIdx.x + threadIdx.x);
     if (id < size)
         values[id] = scalar;
 }
 
 __global__ void vector_set_zero_kernel(float* const values, const size_t size)
 {
-    size_t id{blockDim.x*blockIdx.x + threadIdx.x};
+    size_t id(blockDim.x*blockIdx.x + threadIdx.x);
     if (id < size)
         values[id] = 0.0;
 }
@@ -52,14 +52,14 @@ void VectorGpu::scal(const float scalar)
 
 __global__ void vector_add_kernel(const float* const x, float* const y, const size_t size)
 {
-    size_t id{blockDim.x*blockIdx.x + threadIdx.x};
+    size_t id(blockDim.x*blockIdx.x + threadIdx.x);
     if (id < size)
         y[id] += x[id];
 }
 
 __global__ void vector_axpy_kernel(const float a, const float* const x, float* const y, const size_t size)
 {
-    size_t id{blockDim.x*blockIdx.x + threadIdx.x};
+    size_t id(blockDim.x*blockIdx.x + threadIdx.x);
     if (id < size)
         y[id] += a*x[id];
 }
@@ -80,14 +80,14 @@ void VectorGpu::axpy(const float a, const VectorGpu& x)
 
 __global__ void vector_xpby_kernel(const float* const x, const float b, float* const y, const size_t size)
 {
-    size_t id{blockDim.x*blockIdx.x + threadIdx.x};
+    size_t id(blockDim.x*blockIdx.x + threadIdx.x);
     if (id < size)
         y[id] = b*y[id] + x[id];
 }
 
 __global__ void vector_axpby_kernel(const float a, const float* const x, const float b, float* const y, const size_t size)
 {
-    size_t id{blockDim.x*blockIdx.x + threadIdx.x};
+    size_t id(blockDim.x*blockIdx.x + threadIdx.x);
     if (id < size)
         y[id] = b*y[id] + a*x[id];
 }
@@ -137,18 +137,18 @@ void VectorGpu::copyscal(const float scalar, const VectorGpu& other)
 
 __global__ void vector_dot_vec_kernel(float* const perblockres, const float* const veca, const float* const vecb, const size_t size)
 {
-    size_t globid{blockDim.x*blockIdx.x + threadIdx.x};
+    size_t globid(blockDim.x*blockIdx.x + threadIdx.x);
 if (globid == 0)
 {
-    float res{0.0};
-    for (size_t i{0}; i < size; ++i)
+    float res(0.0);
+    for (size_t i(0); i < size; ++i)
         res += veca[i]*vecb[i];
     perblockres[0] = res;
 }
 /*
-    size_t locid{threadIdx.x};
+    size_t locid(threadIdx.x);
     extern __shared__ float sharedmem[];
-    float* localresults{(float*)sharedmem};
+    float* localresults((float*)sharedmem);
     if (globid < size)
         localresults[locid] = veca[locid] * vecb[locid];
     else
@@ -162,7 +162,7 @@ if (locid == 0)
         perblockres[blockIdx.x] += localresults[i];
 }
 */
-//    for (size_t compressed{blockDim.x/2}; compressed > 0; compressed >>= 1)
+//    for (size_t compressed(blockDim.x/2); compressed > 0; compressed >>= 1)
 //    {
 //        if (locid < compressed)
 //            localresults[locid] += localresults[locid + compressed];
@@ -190,7 +190,7 @@ float VectorGpu::dot_vec(const VectorGpu& other) const
 
 //    free_cuda(perblockres);
 
-    float h_res{0.0};
+    float h_res(0.0);
 //    memcpy_cuda(&h_res, d_res, sizeof(float), d2h);
 memcpy_cuda(&h_res, perblockres, sizeof(float), d2h);
 free_cuda(perblockres);
@@ -202,16 +202,16 @@ free_cuda(perblockres);
 
 __global__ void vector_l2norm2_kernel(float* const perblockres, const float* const values, const size_t size)
 {
-    size_t globid{blockDim.x*blockIdx.x + threadIdx.x};
+    size_t globid(blockDim.x*blockIdx.x + threadIdx.x);
 if (globid == 0)
 {
-    float res{0.0};
-    for (size_t i{0}; i < size; ++i)
+    float res(0.0);
+    for (size_t i(0); i < size; ++i)
         res += values[i] * values[i];
     perblockres[0] = res;
 }
 /*
-    size_t locid{threadIdx.x};
+    size_t locid(threadIdx.x);
     extern __shared__ float sharedmem[];
     float* localresults{(float*)sharedmem};
     if (globid < size)
@@ -223,11 +223,11 @@ if (globid == 0)
 if (locid == 0)
 {
     perblockres[blockIdx.x] = 0.0;
-    for (size_t i{0}; i < blockDim.x; ++i)
+    for (size_t i(0); i < blockDim.x; ++i)
         perblockres[blockIdx.x] += localresults[i];
 }
 */
-//    for (size_t compressed{blockDim.x/2}; compressed > 0; compressed >>= 1)
+//    for (size_t compressed(blockDim.x/2); compressed > 0; compressed >>= 1)
 //    {
 //        if (locid < compressed)
 //            localresults[locid] += localresults[locid + compressed];
@@ -252,7 +252,7 @@ float VectorGpu::l2norm2() const
 //    block_res_to_glob_res<<<1, 1>>>(d_res, perblockres, numblocks.x);
 //    cudaDeviceSynchronize();
 
-    float h_res{0.0};
+    float h_res(0.0);
 //    memcpy_cuda(&h_res, d_res, sizeof(float), d2h);
     memcpy_cuda(&h_res, perblockres, sizeof(float), d2h);
     free_cuda(d_res);

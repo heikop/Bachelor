@@ -50,8 +50,8 @@ __global__ void boundary(const size_t* const rowptr, const size_t* const colind,
     size_t id(blockDim.x*blockIdx.x + threadIdx.x);
     if (id < numboundaryNodes)
     {
-        size_t b_id{boundaryNodes[id]};
-        for (size_t i{rowptr[b_id]}; i < rowptr[b_id+1]; ++i)
+        size_t b_id(boundaryNodes[id]);
+        for (size_t i(rowptr[b_id]); i < rowptr[b_id+1]; ++i)
             values[i] = (colind[i] == b_id ? 1.0 : 0.0);
     }
 }

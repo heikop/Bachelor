@@ -15,10 +15,10 @@ public:
     CsrMatrixGpu(const size_t, const size_t);
     CsrMatrixGpu(const size_t);
     CsrMatrixGpu(const CsrMatrixGpu&);
-    CsrMatrixGpu(CsrMatrixGpu&&);
+//    CsrMatrixGpu(CsrMatrixGpu&&);
     ~CsrMatrixGpu();
     CsrMatrixGpu operator=(const CsrMatrixGpu&);
-    CsrMatrixGpu operator=(const CsrMatrixGpu&&);
+//    CsrMatrixGpu operator=(const CsrMatrixGpu&&);
 
     void createStructure(const Triangle* const elements, const size_t num_elem);
 

@@ -7,6 +7,7 @@ VectorGpu::VectorGpu(const VectorGpu& other):
     memcpy_cuda(_values, other._values, _size*sizeof(float), d2d);
 }
 
+/*
 VectorGpu::VectorGpu(VectorGpu&& other):
     _size(other._size),
     _values(other._values)
@@ -14,6 +15,7 @@ VectorGpu::VectorGpu(VectorGpu&& other):
     other._values = nullptr;
     other._size = 0;
 }
+*/
 
 VectorGpu::~VectorGpu()
 {
@@ -29,6 +31,7 @@ VectorGpu VectorGpu::operator=(const VectorGpu& other)
     return *this;
 }
 
+/*
 VectorGpu VectorGpu::operator=(VectorGpu&& other)
 {
     free_cuda(_values);
@@ -38,6 +41,7 @@ VectorGpu VectorGpu::operator=(VectorGpu&& other)
     other._size = 0;
     return *this;
 }
+*/
 
 void VectorGpu::copy(const VectorGpu& other)
 {
