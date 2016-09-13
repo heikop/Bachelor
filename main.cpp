@@ -12,7 +12,6 @@
 
 void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<FullTriangle>& fullElements);
 
-/*
 int main()
 {
     clock_t time[5];
@@ -25,89 +24,36 @@ int main()
     readmesh("../data/square_evenfiner.msh", nodes, elements, fullElements, boundaryNodes);
     std::cout << "read mesh" << std::endl;
     fillFullElements(nodes, elements, fullElements);
-std::cout << nodes.size() << ", " << elements.size() << std::endl;
+    std::cout << nodes.size() << ", " << elements.size() << std::endl;
     time[0] -= clock();
 
-    // slow
-    std::cout << "creating structure slow" << std::endl;
+    std::cout << std::endl << "start assembling cpu" << std::endl;
+    std::cout << "create structure: ";
     time[1] = clock();
     CsrMatrixCpu matrix_cpu(nodes.size());
     matrix_cpu.createStructure(elements.data(), elements.size());
     time[1] -= clock();
+    std::cout << "created" << std::endl;
 
-    // fast
-    std::cout << "creating structure fast" << std::endl;
-    time[2] = clock();
-    CsrMatrixCpu matrix_cpu_fast(nodes.size());
-    matrix_cpu_fast.createStructure_fast(elements.data(), elements.size());
-    time[2] -= clock();
-
-    // check
-    for (size_t row{0}; row <= matrix_cpu._numrows; ++row)
-        assert ( matrix_cpu._rowptr[row] == matrix_cpu_fast._rowptr[row] );
-    std::cout << "_rowptr identical" << std::endl;
-    for (size_t col{0}; col < matrix_cpu._rowptr[matrix_cpu._numrows]; ++col)
-        assert ( *(matrix_cpu._colind) == *(matrix_cpu_fast._colind) );
-    std::cout << "_colind identical" << std::endl;
-
-    float duration[3];
-    duration[0] = float(-time[0]) / CLOCKS_PER_SEC * 1000.0f;
-    duration[1] = float(-time[1]) / CLOCKS_PER_SEC * 1000.0f;
-    duration[2] = float(-time[2]) / CLOCKS_PER_SEC * 1000.0f;
-    std::cout << std::endl;
-    std::cout.width(7); std::cout << "part" << "   "; std::cout.width(6); std::cout << "total" << " | ";                  std::cout << std::endl;
-    std::cout.width(7); std::cout << "mesh" << " : "; std::cout.width(6); std::cout << duration[0] << " | ";              std::cout << std::endl;
-    std::cout.width(7); std::cout << "slow" << " : "; std::cout.width(6); std::cout << duration[1] << " | "; std::cout.width(7); std::cout << std::endl;
-    std::cout.width(7); std::cout << "fast" << " : "; std::cout.width(6); std::cout << duration[2] << " | "; std::cout.width(7); std::cout << std::endl;
-
-    return 0;
-}
-*/
-
-int main()
-{
-    clock_t time[5];
-    std::cout << "start demo" << std::endl;
-    time[0] = clock();
-    vector<Node> nodes;
-    vector<Triangle> elements;
-    vector<FullTriangle> fullElements;
-    vector<size_t> boundaryNodes;
-    //readmesh("../data/square.msh", nodes, elements, fullElements, boundaryNodes);
-    readmesh("../data/square_evenfiner.msh", nodes, elements, fullElements, boundaryNodes);
-    std::cout << "read mesh" << std::endl;
-    fillFullElements(nodes, elements, fullElements);
-std::cout << nodes.size() << ", " << elements.size() << std::endl;
-    time[0] -= clock();
-//    std::cout << "startup: " << float(-time[0]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
-
-    std::cout << "start assembling cpu" << std::endl;
-    time[1] = clock();
-    CsrMatrixCpu matrix_cpu(nodes.size());
-    matrix_cpu.createStructure(elements.data(), elements.size());
-    time[1] -= clock();
-//    std::cout << "createStructure: " << float(-time[1]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
-
+    std::cout << "assemble matrix: ";
     time[2] = clock();
     assemble_cpu_elem(matrix_cpu, fullElements, boundaryNodes);
     time[2] -= clock();
-//    std::cout << "assembly: " << float(-time[2]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
-//    std::cout << "cpu total: " << float(-time[1]-time[2]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
-//    matrix_cpu.print_local_data(1);
+    std::cout << "assembled" << std::endl;
 
-    std::cout << "start assembling gpu" << std::endl;
+    std::cout << std::endl << "start assembling gpu" << std::endl;
+    std::cout << "create structure";
     time[3] = clock();
     CsrMatrixGpu matrix_gpu(nodes.size());
     matrix_gpu.createStructure(elements.data(), elements.size());
     time[3] -= clock();
-//    std::cout << "createStructure: " << float(-time[3]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
+    std::cout << ": created" << std::endl;
 
+    std::cout << "assemble matrix: ";
     time[4] = clock();
     assemble_gpu_atomic(matrix_gpu, fullElements, boundaryNodes);
     time[4] -= clock();
-//    std::cout << "assembly: " << float(-time[4]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
-//    std::cout << "gpu total: " << float(-time[3]-time[4]) / CLOCKS_PER_SEC * 1000 << "ms" << std::endl;
-//    matrix_gpu.print_local_data(1);
+    std::cout << "assembled" << std::endl;
 
     // matrix check
     size_t* rowptr_gpu_check = new size_t[matrix_gpu._numrows+1];
@@ -169,6 +115,7 @@ std::cout << i << ": " << std::abs(res_gpu_check[i] - res_cpu._values[i]) << std
 
     return 0;
 }
+
 
 void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<FullTriangle>& fullElements)
 {

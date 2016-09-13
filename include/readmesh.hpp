@@ -16,10 +16,11 @@ void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle>& 
     do { fin >> tmp; } while(tmp != "$Nodes");
     size_t num_nodes; fin >> num_nodes;
     nodes.resize(num_nodes);
+    double z_coord_trash;
     for (size_t i(0); i < num_nodes; ++i)
     {
-        fin >> nodes[i].ID >> nodes[i].x >> nodes[i].y;
-        nodes[i].ID -= 1;
+        fin >> nodes[i].ID >> nodes[i].x >> nodes[i].y >> z_coord_trash;
+        --nodes[i].ID;
     }
 
     do { fin >> tmp; } while(tmp != "$Elements");

@@ -1,3 +1,4 @@
+/*
 #include <iostream>
 #include <ctime>
 #include "include/global.hpp"
@@ -61,3 +62,4 @@ void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<Fu
     }
     //fullElements.shrink_to_fit();
 }
+*/
