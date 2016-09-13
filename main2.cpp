@@ -45,14 +45,19 @@ int main()
 void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<FullTriangle>& fullElements)
 {
     fullElements.clear();
-    FullTriangle newelement;
+    fullElements.resize(elements.size());
+    //FullTriangle newelement;
     for (size_t i(0); i < elements.size(); ++i)
     {
-        newelement.ID = elements[i].ID;
-        newelement.nodeA = nodes[elements[i].nodeA];
-        newelement.nodeB = nodes[elements[i].nodeB];
-        newelement.nodeC = nodes[elements[i].nodeC];
-        fullElements.push_back(newelement);
+        //newelement.ID = elements[i].ID;
+        //newelement.nodeA = nodes[elements[i].nodeA];
+        //newelement.nodeB = nodes[elements[i].nodeB];
+        //newelement.nodeC = nodes[elements[i].nodeC];
+        //fullElements.push_back(newelement);
+        fullElements[i].ID = elements[i].ID;
+        fullElements[i].nodeA = nodes[elements[i].nodeA];
+        fullElements[i].nodeB = nodes[elements[i].nodeB];
+        fullElements[i].nodeC = nodes[elements[i].nodeC];
     }
-    fullElements.shrink_to_fit();
+    //fullElements.shrink_to_fit();
 }

@@ -18,16 +18,15 @@ void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle>& 
     nodes.resize(num_nodes);
     for (size_t i(0); i < num_nodes; ++i)
     {
-        size_t ID; fin >> ID;
-        double x, y, z; fin >> x >> y >> z;
-        nodes[i].ID = ID-1;
-        nodes[i].x = x;
-        nodes[i].y = y;
+        fin >> nodes[i].ID >> nodes[i].x >> nodes[i].y;
+        nodes[i].ID -= 1;
     }
 
     do { fin >> tmp; } while(tmp != "$Elements");
     size_t num_elements; fin >> num_elements;
-    elements.clear();
+    size_t num_triangles{num_elements};
+    elements.resize(num_elements);
+    size_t current{0};
     for (size_t i(0); i < num_elements; ++i)
     {
         size_t ID; fin >> ID;
@@ -37,13 +36,12 @@ void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle>& 
             size_t number_of_tags; fin >> number_of_tags;
             size_t tagtrash;
             for (size_t j(0); j < number_of_tags; ++j) fin >> tagtrash;
-            size_t A, B, C; fin >> A >> B >> C;
-            Triangle new_element;
-            new_element.ID = ID-1;
-            new_element.nodeA = A-1;
-            new_element.nodeB = B-1;
-            new_element.nodeC = C-1;
-            elements.push_back(new_element);
+            elements[current].ID = ID-1;
+            fin >> elements[current].nodeA >> elements[current].nodeB >> elements[current].nodeC;
+            elements[current].nodeA -= 1;
+            elements[current].nodeB -= 1;
+            elements[current].nodeC -= 1;
+            ++current;
         }
         else if (type == 1)
         {
@@ -54,13 +52,15 @@ void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle>& 
             fin >> a >> b;
             boundaryNodes.push_back(a);
             boundaryNodes.push_back(b);
+            --num_triangles;
         }
         else
             fin.ignore(256, '\n');
     }
 
     fin.close();
-    elements.shrink_to_fit();
+    //elements.shrink_to_fit();
+    elements.resize(num_triangles);
     boundaryNodes.shrink_to_fit();
 }
 

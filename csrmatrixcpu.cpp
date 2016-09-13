@@ -40,127 +40,13 @@ CsrMatrixCpu::~CsrMatrixCpu()
 
 void CsrMatrixCpu::createStructure(const Triangle* const elements, const size_t num_elem)
 {
-    std::vector<std::vector<size_t>> lol(_numcols, std::vector<size_t>(0));
-    for (size_t i(0); i < num_elem; ++i)
-    {
-        size_t nodes[3];
-        nodes[0] = elements[i].nodeA;
-        nodes[1] = elements[i].nodeB;
-        nodes[2] = elements[i].nodeC;
-        for (size_t node1(0); node1 < 3; ++node1)
-        {
-            for (size_t node2(0); node2 < 3; ++node2)
-            {
-                size_t a(nodes[node1]);
-                size_t b(nodes[node2]);
-                size_t j(0);
-                while (j < lol[a].size() && lol[a][j] < b)
-                    ++j;
-                if (j == lol[a].size())
-                    lol[a].push_back(b);
-                else if (lol[a][j] != b)
-                    lol[a].insert(lol[a].begin()+j, b);
-            }
-        }
-    }
-
-    size_t num_values{0};
-    for (size_t i{0}; i < _numrows; ++i)
-    {
-        _rowptr[i] = num_values;
-        num_values += lol[i].size();
-    }
-    _rowptr[_numrows] = num_values;
-    delete[] _colind;
-    delete[] _values;
-    _colind = new size_t[num_values];
-    _values = new float[num_values];
-
-    size_t current_pos{0};
-    // if, then not essentially faster
-//    for (const auto& row : lol)
-//    {
-//        std::memcpy(_colind + current_pos, row.data(), row.size()*sizeof(size_t));
-//        current_pos += row.size();
-//    }
-    for (const auto& row : lol)
-        for (const auto col : row)
-            _colind[current_pos++] = col;
-    for (size_t i{0}; i < num_values; ++i)
-        _values[i] = 0.0;
-}
-
-void CsrMatrixCpu::createStructure_fast(const Triangle* const elements, const size_t num_elem)
-{
-/*
     const size_t max_rowlength{20};
 
-    std::vector<size_t> num_nonzeros(_numrows, 0);
-    std::vector<size_t> colind(20*_numrows);
-    for (size_t i(0); i < num_elem; ++i)
-    {
-        size_t nodes[3];
-        nodes[0] = elements[i].nodeA;
-        nodes[1] = elements[i].nodeB;
-        nodes[2] = elements[i].nodeC;
-        for (size_t node1(0); node1 < 3; ++node1)
-        {
-            for (size_t node2(0); node2 < 3; ++node2)
-            {
-                size_t a(nodes[node1]);
-                size_t b(nodes[node2]);
-                size_t j(0);
-                while (j < num_nonzeros[a] && colind[a*max_rowlength + j] != b)
-                    ++j;
-                if (num_nonzeros[a] == j)
-                {
-                    ++num_nonzeros[a];
-                    assert(num_nonzeros[a] <= max_rowlength);
-                    colind[a*max_rowlength + j] = b;
-                }
-            }
-        }
-    }
-
+    size_t* num_nonzeros = new size_t[_numrows];
     for (size_t i{0}; i < _numrows; ++i)
-        for (size_t a{num_nonzeros[i]-1}; a > 0; --a)
-            for (size_t b{0}; b < a; ++b)
-                if (colind[i*max_rowlength + b] > colind[i*max_rowlength + b+1])
-                {
-                    size_t tmp{colind[i*max_rowlength + b]};
-                    colind[i*max_rowlength + b] = colind[i*max_rowlength + b+1];
-                    colind[i*max_rowlength + b+1] = tmp;
-                }
+        num_nonzeros[i] = 0;
 
-    size_t num_values{0};
-    for (size_t i{0}; i < _numrows; ++i)
-    {
-        _rowptr[i] = num_values;
-        num_values += num_nonzeros[i];
-    }
-    _rowptr[_numrows] = num_values;
-    delete[] _colind;
-    delete[] _values;
-    _colind = new size_t[num_values];
-    _values = new float[num_values];
-
-    size_t current_pos{0};
-    for (size_t row{0}; row < _numrows; ++row)
-        for (size_t col{0}; col < num_nonzeros[row]; ++col)
-            _colind[current_pos++] = colind[row*max_rowlength + col];
-    for (size_t i{0}; i < num_values; ++i)
-        _values[i] = 0.0;
-
-*/
-    const size_t max_rowlength{20};
-
-    std::vector<size_t> num_nonzeros(_numrows, 0);
-//    size_t* num_nonzeros = new size_t(_numrows);
-//    for (size_t i{0}; i < _numrows; ++i)
-//        num_nonzeros[i] = 0;
-
-    size_t* colind = new size_t(max_rowlength*_numrows);
-//    std::vector<size_t> colind(20*_numrows);
+    size_t* colind = new size_t[max_rowlength*_numrows];
 
     for (size_t i(0); i < num_elem; ++i)
     {
@@ -216,9 +102,8 @@ void CsrMatrixCpu::createStructure_fast(const Triangle* const elements, const si
     for (size_t i{0}; i < num_values; ++i)
         _values[i] = 0.0;
 
-//    delete[] num_nonzeros;
+    delete[] num_nonzeros;
     delete[] colind;
-
 }
 
 void CsrMatrixCpu::set_local(const size_t row, const size_t col, const float val)

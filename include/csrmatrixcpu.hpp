@@ -21,7 +21,6 @@ public:
     CsrMatrixCpu operator=(const CsrMatrixCpu&&);
 
     void createStructure(const Triangle* const elements, const size_t num_elem);
-    void createStructure_fast(const Triangle* const elements, const size_t num_elem);
 
     void set_local(const size_t, const size_t, const float);
     void add_local(const size_t, const size_t, const float);

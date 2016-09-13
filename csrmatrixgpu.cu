@@ -33,61 +33,81 @@ __global__ void set_zeros(float* values, size_t num_values)
 
 void CsrMatrixGpu::createStructure(const Triangle* const elements, const size_t num_elem)
 {
-    std::vector<std::vector<size_t>> lol(_numcols, std::vector<size_t>(0));
+    const size_t max_rowlength{20};
+
+    size_t* num_nonzeros = new size_t[_numrows];
+    for (size_t i{0}; i < _numrows; ++i)
+        num_nonzeros[i] = 0;
+
+    size_t* colind = new size_t[max_rowlength*_numrows];
+
     for (size_t i(0); i < num_elem; ++i)
     {
-        size_t nodes[]{elements[i].nodeA, elements[i].nodeB, elements[i].nodeC};
+        size_t nodes[3];
+        nodes[0] = elements[i].nodeA;
+        nodes[1] = elements[i].nodeB;
+        nodes[2] = elements[i].nodeC;
         for (size_t node1(0); node1 < 3; ++node1)
         {
             for (size_t node2(0); node2 < 3; ++node2)
             {
-                size_t a{nodes[node1]};
-                size_t b{nodes[node2]};
-                size_t j{0};
-                while (j < lol[a].size() && lol[a][j] < b)
+                size_t a(nodes[node1]);
+                size_t b(nodes[node2]);
+                size_t j(0);
+                while (j < num_nonzeros[a] && colind[a*max_rowlength + j] != b)
                     ++j;
-                if (j == lol[a].size())
-                    lol[a].push_back(b);
-                else if (lol[a][j] != b)
-                    lol[a].insert(lol[a].begin()+j, b);
+                if (num_nonzeros[a] == j)
+                {
+                    ++(num_nonzeros[a]);
+                    assert(num_nonzeros[a] <= max_rowlength);
+                    colind[a*max_rowlength + j] = b;
+                }
             }
         }
     }
 
+    for (size_t i{0}; i < _numrows; ++i)
+        for (size_t a{num_nonzeros[i]-1}; a > 0; --a)
+            for (size_t b{0}; b < a; ++b)
+                if (colind[i*max_rowlength + b] > colind[i*max_rowlength + b+1])
+                {
+                    size_t tmp{colind[i*max_rowlength + b]};
+                    colind[i*max_rowlength + b] = colind[i*max_rowlength + b+1];
+                    colind[i*max_rowlength + b+1] = tmp;
+                }
+
     size_t* h_rowptr = new size_t[_numrows+1];
-    size_t num_values(0);
-    for (size_t i(0); i < _numrows; ++i)
+    size_t num_values{0};
+    for (size_t i{0}; i < _numrows; ++i)
     {
         h_rowptr[i] = num_values;
-        num_values += lol[i].size();
+        num_values += num_nonzeros[i];
     }
     h_rowptr[_numrows] = num_values;
+    memcpy_cuda(_rowptr, h_rowptr, (_numrows+1)*sizeof(size_t), h2d);
 
     free_cuda(_colind);
     malloc_cuda(&_colind, num_values*sizeof(size_t));
-    size_t current_pos{0};
     size_t* h_colind = new size_t[num_values];
-    for (const auto& row : lol)
-        for (const auto col : row)
-            h_colind[current_pos++] = col;
+    size_t current_pos{0};
+    for (size_t row{0}; row < _numrows; ++row)
+        for (size_t col{0}; col < num_nonzeros[row]; ++col)
+            h_colind[current_pos++] = colind[row*max_rowlength + col];
     memcpy_cuda(_colind, h_colind, num_values*sizeof(size_t), h2d);
 
     free_cuda(_values);
     malloc_cuda(&_values, num_values*sizeof(float));
     float* h_values = new float[num_values];
-    for (size_t i(0); i < num_values; ++i)
+    for (size_t i{0}; i < num_values; ++i)
         h_values[i] = 0.0;
     memcpy_cuda(_values, h_values, num_values*sizeof(float), h2d);
-// if then not essentially faster
-//    dim3 numblocks, numthreads;
-//    get_kernel_config(&numblocks, &numthreads, num_values);
-//    set_zeros<<<numblocks, numthreads>>>(_values, num_values);
-//    cudaDeviceSynchronize();
 
-    memcpy_cuda(_rowptr, h_rowptr, (_numrows+1)*sizeof(size_t), h2d);
+    delete[] num_nonzeros;
+    delete[] colind;
+    delete[] h_rowptr;
+    delete[] h_colind;
+    delete[] h_values;
+
     cudaDeviceSynchronize(); // needed?
 
-    delete[] h_rowptr;
-//    delete[] h_colind;
-//    delete[] h_values;
 }
