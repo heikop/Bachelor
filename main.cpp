@@ -14,14 +14,16 @@ void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<Fu
 
 int main()
 {
-    clock_t time[5];
+    initCuda();
+
+    clock_t time[7];
     std::cout << "start demo" << std::endl;
     time[0] = clock();
     vector<Node> nodes;
     vector<Triangle> elements;
     vector<FullTriangle> fullElements;
     vector<size_t> boundaryNodes;
-    readmesh("../data/square_evenfiner.msh", nodes, elements, fullElements, boundaryNodes);
+    readmesh("../data/square_ultrafine.msh", nodes, elements, fullElements, boundaryNodes);
     std::cout << "read mesh" << std::endl;
     fillFullElements(nodes, elements, fullElements);
     std::cout << nodes.size() << ", " << elements.size() << std::endl;
@@ -31,28 +33,32 @@ int main()
     std::cout << "create structure: ";
     time[1] = clock();
     CsrMatrixCpu matrix_cpu(nodes.size());
-    matrix_cpu.createStructure(elements.data(), elements.size());
     time[1] -= clock();
+    time[2] = clock();
+    matrix_cpu.createStructure(elements.data(), elements.size());
+    time[2] -= clock();
     std::cout << "created" << std::endl;
 
     std::cout << "assemble matrix: ";
-    time[2] = clock();
+    time[3] = clock();
     assemble_cpu_elem(matrix_cpu, fullElements, boundaryNodes);
-    time[2] -= clock();
+    time[3] -= clock();
     std::cout << "assembled" << std::endl;
 
     std::cout << std::endl << "start assembling gpu" << std::endl;
-    std::cout << "create structure";
-    time[3] = clock();
+    std::cout << "create structure: ";
+    time[4] = clock();
     CsrMatrixGpu matrix_gpu(nodes.size());
+    time[4] -= clock();
+    time[5] = clock();
     matrix_gpu.createStructure(elements.data(), elements.size());
-    time[3] -= clock();
-    std::cout << ": created" << std::endl;
+    time[5] -= clock();
+    std::cout << "created" << std::endl;
 
     std::cout << "assemble matrix: ";
-    time[4] = clock();
+    time[6] = clock();
     assemble_gpu_atomic(matrix_gpu, fullElements, boundaryNodes);
-    time[4] -= clock();
+    time[6] -= clock();
     std::cout << "assembled" << std::endl;
 
     // matrix check
@@ -79,11 +85,13 @@ int main()
     duration[2] = float(-time[2]) / CLOCKS_PER_SEC * 1000.0f;
     duration[3] = float(-time[3]) / CLOCKS_PER_SEC * 1000.0f;
     duration[4] = float(-time[4]) / CLOCKS_PER_SEC * 1000.0f;
+    duration[5] = float(-time[5]) / CLOCKS_PER_SEC * 1000.0f;
+    duration[6] = float(-time[6]) / CLOCKS_PER_SEC * 1000.0f;
     std::cout << std::endl;
     std::cout.width(7); std::cout << "part" << "   "; std::cout.width(6); std::cout << "total" << " | ";                 std::cout << "splitted"; std::cout << std::endl;
     std::cout.width(7); std::cout << "mesh" << " : "; std::cout.width(6); std::cout << duration[0] << " | ";             std::cout.width(7); std::cout << ""; std::cout << std::endl;
-    std::cout.width(7); std::cout <<  "CPU" << " : "; std::cout.width(6); std::cout << duration[1]+duration[2] << " | "; std::cout.width(7); std::cout << duration[1] << ", "; std::cout.width(7); std::cout << duration[2]; std::cout << std::endl;
-    std::cout.width(7); std::cout <<  "GPU" << " : "; std::cout.width(6); std::cout << duration[3]+duration[4] << " | "; std::cout.width(7); std::cout << duration[3] << ", "; std::cout.width(7); std::cout << duration[4]; std::cout << std::endl;
+    std::cout.width(7); std::cout <<  "CPU" << " : "; std::cout.width(6); std::cout << duration[1]+duration[2]+duration[3] << " | "; std::cout.width(7); std::cout << duration[1] << ", "; std::cout.width(7); std::cout << duration[2] << ", "; std::cout.width(7); std::cout << duration[3]; std::cout << std::endl;
+    std::cout.width(7); std::cout <<  "GPU" << " : "; std::cout.width(6); std::cout << duration[4]+duration[5]+duration[6] << " | "; std::cout.width(7); std::cout << duration[4] << ", "; std::cout.width(7); std::cout << duration[5] << ", "; std::cout.width(7); std::cout << duration[6]; std::cout << std::endl;
 
 /*
     // calculation - solving LGS

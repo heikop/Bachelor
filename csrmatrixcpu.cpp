@@ -40,10 +40,10 @@ CsrMatrixCpu::~CsrMatrixCpu()
 
 void CsrMatrixCpu::createStructure(const Triangle* const elements, const size_t num_elem)
 {
-    const size_t max_rowlength{20};
+    const size_t max_rowlength(20);
 
     size_t* num_nonzeros = new size_t[_numrows];
-    for (size_t i{0}; i < _numrows; ++i)
+    for (size_t i(0); i < _numrows; ++i)
         num_nonzeros[i] = 0;
 
     size_t* colind = new size_t[max_rowlength*_numrows];
@@ -73,12 +73,12 @@ void CsrMatrixCpu::createStructure(const Triangle* const elements, const size_t 
         }
     }
 
-    for (size_t i{0}; i < _numrows; ++i)
-        for (size_t a{num_nonzeros[i]-1}; a > 0; --a)
-            for (size_t b{0}; b < a; ++b)
+    for (size_t i(0); i < _numrows; ++i)
+        for (size_t a(num_nonzeros[i]-1); a > 0; --a)
+            for (size_t b(0); b < a; ++b)
                 if (colind[i*max_rowlength + b] > colind[i*max_rowlength + b+1])
                 {
-                    size_t tmp{colind[i*max_rowlength + b]};
+                    size_t tmp(colind[i*max_rowlength + b]);
                     colind[i*max_rowlength + b] = colind[i*max_rowlength + b+1];
                     colind[i*max_rowlength + b+1] = tmp;
                 }

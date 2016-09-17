@@ -2,8 +2,14 @@
 
 #include "include/global.hpp"
 
-template<typename scalar>
-void malloc_cuda(scalar** devPtr, size_t size)
+void initCuda()
+{
+    int* dummy;
+    cudaMalloc(&dummy, 100*sizeof(int));
+    cudaFree(dummy);
+}
+
+template<typename scalar> void malloc_cuda(scalar** devPtr, size_t size)
 {
     cudaMalloc(devPtr, size);
 }
