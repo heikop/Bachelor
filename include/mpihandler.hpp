@@ -1,4 +1,3 @@
-/*
 #ifndef __MPIHANDLER_HPP_
 #define __MPIHANDLER_HPP_
 
@@ -6,16 +5,17 @@
 #include <exception>
 #include <string>
 #include <iostream>
+#include <cassert> // only to avoid delete sentences
 
 class MpiHandler
 {
 public:
     MpiHandler();
-    MpiHandler(const MpiHandler&) = delete;
-    MpiHandler(MpiHandler&&) = delete;
+    MpiHandler(const MpiHandler&) { assert(false); };// = delete;
+//    MpiHandler(MpiHandler&&) = delete;
     ~MpiHandler();
-    MpiHandler& operator=(const MpiHandler&) = delete;
-    MpiHandler& operator=(MpiHandler&&) = delete;
+    MpiHandler& operator=(const MpiHandler&) { assert(false); return *this; };// = delete;
+//    MpiHandler& operator=(MpiHandler&&) = delete;
 
     void catch_call(int line, std::string file, const std::exception& ex);
 
@@ -34,4 +34,3 @@ extern MpiHandler __mpi_instance__;
                    { __mpi_instance__.catch_call(__LINE__, __FILE__, ex); } 
 
 #endif//__MPIHANDLER_HPP_
-*/

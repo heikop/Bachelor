@@ -1,3 +1,3 @@
-//#include "include/mpihandler.hpp"
-//
-//MpiHandler __mpi_instance__;
+#include "include/mpihandler.hpp"
+
+MpiHandler __mpi_instance__;

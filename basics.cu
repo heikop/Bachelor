@@ -36,7 +36,7 @@ void memcpy_cuda(void* dst, const void* src, size_t count, memcpyKind kind)
     case d2h: cudaMemcpy(dst, src, count, cudaMemcpyDeviceToHost); break;
     case d2d: cudaMemcpy(dst, src, count, cudaMemcpyDeviceToDevice); break;
     case h2h: cudaMemcpy(dst, src, count, cudaMemcpyHostToHost); break;
-    //default: //error
+    default: assert(false); //error
     }
 }
 
