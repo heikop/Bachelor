@@ -21,17 +21,18 @@ void assemble_cpu_elem(CsrMatrixCpu& matrix, std::vector<FullTriangle>& elements
         gradC[0] = -B[1][0];
         gradC[1] = B[0][0];
 
-        matrix.add_local(elem.nodeA.ID, elem.nodeA.ID, (gradA[0]*gradA[0] + gradA[1]*gradA[1]) / 2.0 / detB);
-        matrix.add_local(elem.nodeA.ID, elem.nodeB.ID, (gradA[0]*gradB[0] + gradA[1]*gradB[1]) / 2.0 / detB);
-        matrix.add_local(elem.nodeA.ID, elem.nodeC.ID, (gradA[0]*gradC[0] + gradA[1]*gradC[1]) / 2.0 / detB);
-        matrix.add_local(elem.nodeB.ID, elem.nodeA.ID, (gradB[0]*gradA[0] + gradB[1]*gradA[1]) / 2.0 / detB);
-        matrix.add_local(elem.nodeB.ID, elem.nodeB.ID, (gradB[0]*gradB[0] + gradB[1]*gradB[1]) / 2.0 / detB);
-        matrix.add_local(elem.nodeB.ID, elem.nodeC.ID, (gradB[0]*gradC[0] + gradB[1]*gradC[1]) / 2.0 / detB);
-        matrix.add_local(elem.nodeC.ID, elem.nodeA.ID, (gradC[0]*gradA[0] + gradC[1]*gradA[1]) / 2.0 / detB);
-        matrix.add_local(elem.nodeC.ID, elem.nodeB.ID, (gradC[0]*gradB[0] + gradC[1]*gradB[1]) / 2.0 / detB);
-        matrix.add_local(elem.nodeC.ID, elem.nodeC.ID, (gradC[0]*gradC[0] + gradC[1]*gradC[1]) / 2.0 / detB);
+        matrix.add_global(elem.nodeA.ID, elem.nodeA.ID, (gradA[0]*gradA[0] + gradA[1]*gradA[1]) / 2.0 / detB);
+        matrix.add_global(elem.nodeA.ID, elem.nodeB.ID, (gradA[0]*gradB[0] + gradA[1]*gradB[1]) / 2.0 / detB);
+        matrix.add_global(elem.nodeA.ID, elem.nodeC.ID, (gradA[0]*gradC[0] + gradA[1]*gradC[1]) / 2.0 / detB);
+        matrix.add_global(elem.nodeB.ID, elem.nodeA.ID, (gradB[0]*gradA[0] + gradB[1]*gradA[1]) / 2.0 / detB);
+        matrix.add_global(elem.nodeB.ID, elem.nodeB.ID, (gradB[0]*gradB[0] + gradB[1]*gradB[1]) / 2.0 / detB);
+        matrix.add_global(elem.nodeB.ID, elem.nodeC.ID, (gradB[0]*gradC[0] + gradB[1]*gradC[1]) / 2.0 / detB);
+        matrix.add_global(elem.nodeC.ID, elem.nodeA.ID, (gradC[0]*gradA[0] + gradC[1]*gradA[1]) / 2.0 / detB);
+        matrix.add_global(elem.nodeC.ID, elem.nodeB.ID, (gradC[0]*gradB[0] + gradC[1]*gradB[1]) / 2.0 / detB);
+        matrix.add_global(elem.nodeC.ID, elem.nodeC.ID, (gradC[0]*gradC[0] + gradC[1]*gradC[1]) / 2.0 / detB);
     }
     for (const auto bid : boundaryNodes)
-        for (size_t i{matrix._rowptr[bid]}; i < matrix._rowptr[bid+1]; ++i)
-            matrix._values[i] = (matrix._colind[i] == bid ? 1.0 : 0.0);
+        if (bid >= matrix._firstrow_on_local && bid < matrix._firstrow_on_local + matrix._numrows_local)
+            for (size_t i{matrix._rowptr[bid - matrix._firstrow_on_local]}; i < matrix._rowptr[bid - matrix._firstrow_on_local + 1]; ++i)
+                matrix._values[i] = (matrix._colind[i] == bid ? 1.0 : 0.0);
 }

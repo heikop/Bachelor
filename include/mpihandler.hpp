@@ -33,4 +33,7 @@ extern MpiHandler __mpi_instance__;
                    catch (const std::exception& ex) \
                    { __mpi_instance__.catch_call(__LINE__, __FILE__, ex); } 
 
+#define MPIRANK __mpi_instance__.get_global_rank()
+#define MPISIZE __mpi_instance__.get_global_size()
+
 #endif//__MPIHANDLER_HPP_

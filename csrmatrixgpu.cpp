@@ -84,7 +84,7 @@ void CsrMatrixGpu::add_local_atomic(const size_t row, const size_t col, const fl
     //atomicAdd(&_values[pos_to_insert], val);
 }
 
-void CsrMatrixGpu::print_local_data(const size_t firstindex=0) const
+void CsrMatrixGpu::print_local_data(const size_t firstindex) const
 {
     size_t* h_rowptr = new size_t[_numrows+1];
     memcpy_cuda(h_rowptr, _rowptr, (_numrows+1)*sizeof(size_t), d2h);

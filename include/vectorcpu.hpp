@@ -13,10 +13,10 @@ class VectorCpu
 public:
     VectorCpu(const size_t size, const float val=0.0);
     VectorCpu(const VectorCpu&);
-    VectorCpu(VectorCpu&&);
+//    VectorCpu(VectorCpu&&);
     ~VectorCpu();
     VectorCpu operator=(const VectorCpu&);
-    VectorCpu operator=(VectorCpu&&);
+//    VectorCpu operator=(VectorCpu&&);
     void copy(const VectorCpu&);
     void copyscal(const float, const VectorCpu&);
 
@@ -32,9 +32,11 @@ public:
 
     float l2norm2() const;
 
-    void print_local_data(const size_t firstindex) const;
+    void print_local_data(const size_t firstindex=0) const;
 //private:
-    size_t _size;
+    size_t _size_global;
+    size_t _size_local;
+    size_t _firstentry_on_local;
     float* _values;
 };
 

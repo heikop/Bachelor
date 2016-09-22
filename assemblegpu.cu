@@ -8,6 +8,7 @@ __device__ void add_local_atomic(const size_t* const rowptr, const size_t* const
     while (colind[pos_to_insert] < col && pos_to_insert < rowptr[row+1])
         ++pos_to_insert;
     atomicAdd(values + pos_to_insert, val);
+    //*(values + pos_to_insert) += val; // this is not faster !?
 }
 
 __global__ void atomic(const size_t* const rowptr, const size_t* const colind, float* const values, const size_t numrows, const FullTriangle* const elements, const size_t numelem)
