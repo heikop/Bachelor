@@ -2,6 +2,7 @@
 #include <ctime>
 #include "include/global.hpp"
 #include "include/readmesh.hpp"
+#include "include/readnag.hpp"
 #include "include/csrmatrixcpu.hpp"
 #include "include/csrmatrixgpu.hpp"
 #include "include/assemblecpu.hpp"
@@ -16,7 +17,7 @@ int main()
 {
     initCuda();
 
-    clock_t time[7];
+    clock_t time[9];
     std::cout << "start demo" << std::endl;
     time[0] = clock();
     vector<Node> nodes;
@@ -61,8 +62,25 @@ int main()
     time[6] -= clock();
     std::cout << "assembled" << std::endl;
 
+
+    vector<size_t> num_neighbours, nag, num_midpoints, gaps, num_gaps;
+    readnag("../data/square_fine.nag", nodes, num_neighbours, nag, num_midpoints, gaps, num_gaps);
+
+    std::cout << std::endl << "start assembling cpu from nag-format" << std::endl;
+    std::cout << "initialize matrix: ";
+    time[7] = clock();
+    CsrMatrixCpu matrix_cpu_nag(nodes.size());
+    time[7] -= clock();
+    std::cout << "created" << std::endl;
+
+    std::cout << "assemble matrix: ";
+    time[8] = clock();
+    assemble_cpu_nag_id(matrix_cpu_nag, num_neighbours, nag, num_midpoints, gaps, num_gaps, nodes)
+    time[8] -= clock();
+    std::cout << "assembled" << std::endl;
+
     // nice output
-    float duration[5];
+    float duration[9];
     duration[0] = float(-time[0]) / CLOCKS_PER_SEC * 1000.0f;
     duration[1] = float(-time[1]) / CLOCKS_PER_SEC * 1000.0f;
     duration[2] = float(-time[2]) / CLOCKS_PER_SEC * 1000.0f;
@@ -70,13 +88,23 @@ int main()
     duration[4] = float(-time[4]) / CLOCKS_PER_SEC * 1000.0f;
     duration[5] = float(-time[5]) / CLOCKS_PER_SEC * 1000.0f;
     duration[6] = float(-time[6]) / CLOCKS_PER_SEC * 1000.0f;
+    duration[7] = float(-time[7]) / CLOCKS_PER_SEC * 1000.0f;
+    duration[8] = float(-time[8]) / CLOCKS_PER_SEC * 1000.0f;
     std::cout << std::endl;
     std::cout.width(7); std::cout << "part" << "   "; std::cout.width(6); std::cout << "total" << " | ";                 std::cout << "splitted"; std::cout << std::endl;
     std::cout.width(7); std::cout << "mesh" << " : "; std::cout.width(6); std::cout << duration[0] << " | ";             std::cout.width(7); std::cout << ""; std::cout << std::endl;
     std::cout.width(7); std::cout <<  "CPU" << " : "; std::cout.width(6); std::cout << duration[1]+duration[2]+duration[3] << " | "; std::cout.width(7); std::cout << duration[1] << ", "; std::cout.width(7); std::cout << duration[2] << ", "; std::cout.width(7); std::cout << duration[3]; std::cout << std::endl;
     std::cout.width(7); std::cout <<  "GPU" << " : "; std::cout.width(6); std::cout << duration[4]+duration[5]+duration[6] << " | "; std::cout.width(7); std::cout << duration[4] << ", "; std::cout.width(7); std::cout << duration[5] << ", "; std::cout.width(7); std::cout << duration[6]; std::cout << std::endl;
+    std::cout.width(7); std::cout <<  "CPU nag" << " : "; std::cout.width(6); std::cout << duration[7]+duration[8] << " | "; std::cout.width(7); std::cout << duration[7] << ", "; std::cout.width(7); std::cout << "---" << ", "; std::cout.width(7); std::cout << duration[8]; std::cout << std::endl;
 
     // matrix check
+    for (size_t i(0); i < matrix_cpu._numrows_global; ++i)
+    {
+        std::cout << "check row " << i << ": ";
+        for (size_t j(0); j < matrix_cpu._numcols_global; ++j)
+            assert(matrix_cpu.get_global(i, j) == matrix_cpu_nag.get_global(i, j));
+        std::cout << "checked " << std::endl;
+    }
     /*
     size_t* rowptr_gpu_check = new size_t[matrix_gpu._numrows+1];
     memcpy_cuda(rowptr_gpu_check, matrix_gpu._rowptr, (matrix_gpu._numrows+1)*sizeof(size_t), d2h);

@@ -1,5 +1,89 @@
 #include "include/assemblecpu.hpp"
 
+//TODO MPI: this is not mpi ready!
+//TODO: midpoint nodes
+void assemble_cpu_nag_id(CsrMatrixCpu& matrix,
+                         std::vector<size_t>& num_neighbours,
+                         std::vector<size_t>& nag,
+                         std::vector<size_t>& num_midpoints,
+                         std::vector<size_t>& gaps,
+                         std::vector<size_t>& num_gaps,
+                         std::vector<Node>& nodes)
+{
+    assert(matrix._numrows_global == matrix._numcols_global &&
+           matrix._numrows_global == nodes.size()           &&
+           matrix._numrows_global == num_neighbours.size()    );
+
+    // create structure
+    const size_t num_nodes{nodes.size()};
+    matrix._rowptr[0] = 0;
+    for (size_t row{0}; row < num_nodes; ++row)
+        matrix._rowptr[row + 1] = matrix._rowptr[row] + num_neighbours[row] + 1;
+    _colind = new size_t[matrix._rowptr[num_nodes]];
+    _values = new float[matrix._rowptr[num_nodes]];
+
+    // fill entries
+    for (size_t row{0}; row < num_nodes; ++row)
+    {
+        if (num_gaps[row] == 0)
+        {
+            for (size_t e{0}; e < num_neighbours[i]-1; ++e)
+            {
+                // point A: actual point - row
+                // point B: e's neighbour
+                // point C: e+1's neighbour
+                //         C
+                //        / \
+                //       /    \
+                //      A------B
+                float B[2][2];
+                B[0][0] = nodes[nag[_rowptr[row] + e    ]].x - nodes[row].x;
+                B[1][0] = nodes[nag[_rowptr[row] + e    ]].y - nodes[row].y;
+                B[0][1] = nodes[nag[_rowptr[row] + e + 1]].x - nodes[row].x;
+                B[1][1] = nodes[nag[_rowptr[row] + e + 1]].y - nodes[row].y;
+                float detB(std::abs(B[0][0]*B[1][1] - B[0][1]*B[1][0]));
+                float gradA[2], gradB[2], gradC[2]; // in fact these are the gradients multplied by det(B)
+                gradA[0] = B[1][0] - B[1][1];
+                gradA[1] = B[0][1] - B[0][0];
+                gradB[0] = B[1][1];
+                gradB[1] = -B[0][1];
+                gradC[0] = -B[1][0];
+                gradC[1] = B[0][0];
+                // TODO TOCHECK: dont add this directly into the matrix. do this at the end -> faster?
+                matrix.add_global(row, row                      , (gradA[0]*gradA[0] + gradA[1]*gradA[1]) / 2.0 / detB);
+                matrix.add_global(row, nag[_rowptr[row] + e    ], (gradA[0]*gradB[0] + gradA[1]*gradB[1]) / 2.0 / detB);
+                matrix.add_global(row, nag[_rowptr[row] + e + 1], (gradA[0]*gradC[0] + gradA[1]*gradC[1]) / 2.0 / detB);
+            }
+            // e = num_neighbours-1; e + 1 = 0;
+                float B[2][2];
+                B[0][0] = nodes[nag[_rowptr[row] + num_neighbours[i] - 1]].x - nodes[row].x;
+                B[1][0] = nodes[nag[_rowptr[row] + num_neighbours[i] - 1]].y - nodes[row].y;
+                B[0][1] = nodes[nag[_rowptr[row] +                      ]].x - nodes[row].x;
+                B[1][1] = nodes[nag[_rowptr[row] +                      ]].y - nodes[row].y;
+                float detB(std::abs(B[0][0]*B[1][1] - B[0][1]*B[1][0]));
+                float gradA[2], gradB[2], gradC[2]; // in fact these are the gradients multplied by det(B)
+                gradA[0] = B[1][0] - B[1][1];
+                gradA[1] = B[0][1] - B[0][0];
+                gradB[0] = B[1][1];
+                gradB[1] = -B[0][1];
+                gradC[0] = -B[1][0];
+                gradC[1] = B[0][0];
+                // TODO TOCHECK: dont add this directly into the matrix. do this at the end -> faster?
+                matrix.add_global(row, row                                      , (gradA[0]*gradA[0] + gradA[1]*gradA[1]) / 2.0 / detB);
+                matrix.add_global(row, nag[_rowptr[row] + num_neighbours[i] - 1], (gradA[0]*gradB[0] + gradA[1]*gradB[1]) / 2.0 / detB);
+                matrix.add_global(row, nag[_rowptr[row]                        ], (gradA[0]*gradC[0] + gradA[1]*gradC[1]) / 2.0 / detB);
+        }
+        else
+        {
+            //TODO
+            for (size_t i{0}; i < num_neighbours[i]; ++i)
+                matrix.set_global(row, nag[_rowptr[row]] + i, 0.0);
+            matrix.set_global(row, row, 1.0);
+        }
+    }
+}
+
+
 void assemble_cpu_elem(CsrMatrixCpu& matrix, std::vector<FullTriangle>& elements, std::vector<size_t>& boundaryNodes)
 {
     for (const auto& elem : elements)

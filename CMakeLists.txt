@@ -52,3 +52,5 @@ cuda_add_library(CUDALIB ${CUDASOURCES})
 
 cuda_add_executable(demo "main.cpp")
 target_link_libraries(demo GLOBLIB CUDALIB ${MPI_LIBRARIES} ${CUDA_LIBRARIES})
+cuda_add_executable(convert "converter.cpp")
+target_link_libraries(convert GLOBLIB CUDALIB ${MPI_LIBRARIES} ${CUDA_LIBRARIES})

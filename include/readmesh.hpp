@@ -61,7 +61,6 @@ void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle>& 
             fin.ignore(256, '\n');
         }
     }
-    elements.resize(num_triangles);
 
     fin.close();
     //elements.shrink_to_fit();
