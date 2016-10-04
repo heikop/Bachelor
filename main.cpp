@@ -2,187 +2,71 @@
 #include <ctime>
 #include "include/global.hpp"
 #include "include/readmesh.hpp"
-#include "include/readnag.hpp"
 #include "include/csrmatrixcpu.hpp"
-#include "include/csrmatrixgpu.hpp"
-#include "include/assemblecpu.hpp"
-#include "include/assemblegpu.hpp"
 #include "include/vectorcpu.hpp"
-#include "include/vectorgpu.hpp"
-#include "include/cgsolver.hpp"
-
-void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<FullTriangle>& fullElements);
+#include "include/assemble.hpp"
 
 int main()
 {
-    initCuda();
+    clock_t time[4];
+    std::cout << ">- CPU: MESH FORMAT, Q2 -<" << std::endl;
+    vector<Node>       nodes_id,       nodes_full;
+    vector<TriangleQ2> elements_id,    elements_full;
+    size_t             numnodes_id,    numnodes_full;
+    size_t             numelements_id, numelements_full;
+    size_t num_edgenodes{0};
 
-    clock_t time[9];
-    std::cout << "start demo" << std::endl;
+    mesh_q2("../data/square_q2.msh", nodes_id, elements_id, num_edgenodes);
+    numnodes_id    = nodes_id.size();
+    numelements_id = elements_id.size();
+    nodes_id.resize(num_edgenodes);
+    mesh_q2("../data/square_q2.msh", nodes_full, elements_full, num_edgenodes);
+    numnodes_id    = nodes_full.size();
+    numelements_id = elements_full.size();
+    nodes_full.resize(num_edgenodes);
+
+    std::cout << std::endl << "IDs" << std::flush;
     time[0] = clock();
-    vector<Node> nodes;
-    vector<Triangle> elements;
-    vector<FullTriangle> fullElements;
-    vector<size_t> boundaryNodes;
-    readmesh("../data/square_ultrafine.msh", nodes, elements, fullElements, boundaryNodes);
-    std::cout << "read mesh" << std::endl;
-    fillFullElements(nodes, elements, fullElements);
-    std::cout << nodes.size() << ", " << elements.size() << std::endl;
+    CsrMatrixCpu mat_id(nodes_id.size());
+    structure_id(mat_id, nodes_id, elements_id);
     time[0] -= clock();
-
-    std::cout << std::endl << "start assembling cpu" << std::endl;
-    std::cout << "create structure: ";
     time[1] = clock();
-    CsrMatrixCpu matrix_cpu(nodes.size());
+    assemble_id(mat_id, nodes_id, elements_id);
     time[1] -= clock();
-    time[2] = clock();
-    matrix_cpu.createStructure(elements.data(), elements.size());
-    time[2] -= clock();
-    std::cout << "created" << std::endl;
+    std::cout << " - done" << std::endl;
 
-    std::cout << "assemble matrix: ";
-    time[3] = clock();
-    assemble_cpu_elem(matrix_cpu, fullElements, boundaryNodes);
-    time[3] -= clock();
-    std::cout << "assembled" << std::endl;
-
-    std::cout << std::endl << "start assembling gpu" << std::endl;
-    std::cout << "create structure: ";
-    time[4] = clock();
-    CsrMatrixGpu matrix_gpu(nodes.size());
-    time[4] -= clock();
-    time[5] = clock();
-    matrix_gpu.createStructure(elements.data(), elements.size());
-    time[5] -= clock();
-    std::cout << "created" << std::endl;
-
-    std::cout << "assemble matrix: ";
-    time[6] = clock();
-    assemble_gpu_atomic(matrix_gpu, fullElements, boundaryNodes);
-    time[6] -= clock();
-    std::cout << "assembled" << std::endl;
-
-    std::cout << std::endl << "nag format:" << std::endl;
-    vector<size_t> num_neighbours, nag, num_midpoints, gaps, num_gaps;
-    readnag("../data/square_ultrafine.nag", nodes, num_neighbours, nag, num_midpoints, gaps, num_gaps);
-    std::cout << "read nag" << std::endl;
-
-    std::cout << std::endl << "start assembling cpu from nag-format" << std::endl;
-    std::cout << "initialize matrix: ";
-    time[7] = clock();
-    CsrMatrixCpu matrix_cpu_nag(nodes.size());
-    time[7] -= clock();
-    std::cout << "created" << std::endl;
-
-    std::cout << "assemble matrix: ";
-    time[8] = clock();
-    assemble_cpu_nag_id(matrix_cpu_nag, num_neighbours, nag, num_midpoints, gaps, num_gaps, nodes);
-    time[8] -= clock();
-    std::cout << "assembled" << std::endl;
+//    std::cout << std::endl << "no IDs" << std::flush;
+//    time[2] = clock();
+//    CsrMatrixCpu mat_full(nodes_full.size());
+//    structure_full(mat_full, nodes_full, elements_full);
+//    time[2] -= clock();
+//    time[3] = clock();
+//    assemble_full(mat_full, nodes_full, elements_full);
+//    time[3] -= clock();
+//    std::cout << " - done" << std::endl;
 
     // nice output
-    float duration[9];
-    duration[0] = float(-time[0]) / CLOCKS_PER_SEC * 1000.0f;
-    duration[1] = float(-time[1]) / CLOCKS_PER_SEC * 1000.0f;
-    duration[2] = float(-time[2]) / CLOCKS_PER_SEC * 1000.0f;
-    duration[3] = float(-time[3]) / CLOCKS_PER_SEC * 1000.0f;
-    duration[4] = float(-time[4]) / CLOCKS_PER_SEC * 1000.0f;
-    duration[5] = float(-time[5]) / CLOCKS_PER_SEC * 1000.0f;
-    duration[6] = float(-time[6]) / CLOCKS_PER_SEC * 1000.0f;
-    duration[7] = float(-time[7]) / CLOCKS_PER_SEC * 1000.0f;
-    duration[8] = float(-time[8]) / CLOCKS_PER_SEC * 1000.0f;
+    float duration[4];
+    for (size_t i{0}; i < 4; ++i)
+        duration[i] = float(-time[i]) / CLOCKS_PER_SEC * 1000.0f;
     std::cout << std::endl;
-    std::cout.width(7); std::cout << "part" << "   "; std::cout.width(6); std::cout << "total" << " | ";                 std::cout << "splitted"; std::cout << std::endl;
-    std::cout.width(7); std::cout << "mesh" << " : "; std::cout.width(6); std::cout << duration[0] << " | ";             std::cout.width(7); std::cout << ""; std::cout << std::endl;
-    std::cout.width(7); std::cout <<  "CPU" << " : "; std::cout.width(6); std::cout << duration[1]+duration[2]+duration[3] << " | "; std::cout.width(7); std::cout << duration[1] << ", "; std::cout.width(7); std::cout << duration[2] << ", "; std::cout.width(7); std::cout << duration[3]; std::cout << std::endl;
-    std::cout.width(7); std::cout <<  "GPU" << " : "; std::cout.width(6); std::cout << duration[4]+duration[5]+duration[6] << " | "; std::cout.width(7); std::cout << duration[4] << ", "; std::cout.width(7); std::cout << duration[5] << ", "; std::cout.width(7); std::cout << duration[6]; std::cout << std::endl;
-    std::cout.width(7); std::cout <<  "CPU nag" << " : "; std::cout.width(6); std::cout << duration[7]+duration[8] << " | "; std::cout.width(7); std::cout << duration[7] << ", "; std::cout.width(7); std::cout << "---" << ", "; std::cout.width(7); std::cout << duration[8]; std::cout << std::endl;
+    std::cout << duration[0] << ", " << duration[1] << std::endl;
+    std::cout << duration[2] << ", " << duration[3] << std::endl;
 
 //    std::cout << std::endl;
-//    matrix_cpu.print_local_data();
+//    matrix_id.print_local_data();
 //    std::cout << std::endl;
-//    matrix_cpu_nag.print_local_data();
+//    matrix_full.print_local_data();
 //    std::cout << std::endl;
-
 
     // matrix check
-    for (size_t i(0); i < matrix_cpu._numrows_global; ++i)
-    {
-        std::cout << "check row " << i << ": ";
-        for (size_t j(0); j < matrix_cpu._numcols_global; ++j)
-            assert(matrix_cpu.get_global(i, j) == matrix_cpu_nag.get_global(i, j));
-        std::cout << "checked " << std::endl;
-    }
-    /*
-    size_t* rowptr_gpu_check = new size_t[matrix_gpu._numrows+1];
-    memcpy_cuda(rowptr_gpu_check, matrix_gpu._rowptr, (matrix_gpu._numrows+1)*sizeof(size_t), d2h);
-    for (size_t i(0); i <= matrix_gpu._numrows; ++i)
-        assert(rowptr_gpu_check[i] == matrix_cpu._rowptr[i]);
-    size_t* colind_gpu_check = new size_t[rowptr_gpu_check[matrix_gpu._numrows]];
-    memcpy_cuda(colind_gpu_check, matrix_gpu._colind, rowptr_gpu_check[matrix_gpu._numrows]*sizeof(size_t), d2h);
-    for (size_t i(0); i < rowptr_gpu_check[matrix_gpu._numrows]; ++i)
-        assert(colind_gpu_check[i] == matrix_cpu._colind[i]);
-    float* values_gpu_check = new float[rowptr_gpu_check[matrix_gpu._numrows]];
-    memcpy_cuda(values_gpu_check, matrix_gpu._values, rowptr_gpu_check[matrix_gpu._numrows]*sizeof(float), d2h);
-    for (size_t i(0); i < rowptr_gpu_check[matrix_gpu._numrows]; ++i)
-        assert(values_gpu_check[i] == matrix_cpu._values[i]);
-    delete[] rowptr_gpu_check;
-    delete[] colind_gpu_check;
-    delete[] values_gpu_check;
-    */
-
-    //if (__mpi_instance__.get_global_rank() == 0)
-    //for (size_t i(0); i < matrix_cpu._numrows_global; ++i)
-    //{
-    //    std::cout << "check row " << i << ": ";
-    //    for (size_t j(0); j < matrix_cpu._numcols_global; ++j)
-    //        assert(matrix_cpu.get_global(i, j) == matrix_gpu.get_global(i, j));
-    //    std::cout << "checked " << std::endl;
-    //}
-
-/*
-    // calculation - solving LGS
-std::cout << "LGS" << std::endl;
-    nodes.clear();
-    elements.clear();
-    fullElements.clear();
-    VectorCpu rhs_cpu(matrix_cpu._numrows, 1.0);
-    VectorCpu res_cpu(matrix_cpu._numrows, 1.0);
-    CgSolver<CsrMatrixCpu, VectorCpu> solver_cpu(matrix_cpu, rhs_cpu);
-    solver_cpu.solve(res_cpu);
-    VectorGpu rhs_gpu(matrix_gpu._numrows, 1.0);
-    VectorGpu res_gpu(matrix_gpu._numrows, 1.0);
-    CgSolver<CsrMatrixGpu, VectorGpu> solver_gpu(matrix_gpu, rhs_gpu);
-    solver_gpu.solve(res_gpu);
-//res_cpu.print_local_data(1);
-//res_gpu.print_local_data(1);
-
-    // solution check
-    float* res_gpu_check = new float[res_gpu._size];
-    memcpy_cuda(res_gpu_check, res_gpu._values, res_gpu._size*sizeof(float), d2h);
-    for (size_t i(0); i < res_gpu._size; ++i)
-{
-        if(std::abs(res_gpu_check[i] - res_cpu._values[i]) > 1.0e-3)
-std::cout << i << ": " << std::abs(res_gpu_check[i] - res_cpu._values[i]) << std::endl;
-}
-    delete[] res_gpu_check;
-*/
+//    for (size_t i(0); i < matrix_id._numrows_global; ++i)
+//    {
+//        std::cout << "check row " << i << ": ";
+//        for (size_t j(0); j < matrix_id._numcols_global; ++j)
+//            assert(matrix_id.get_global(i, j) == matrix_full.get_global(i, j));
+//        std::cout << "checked " << std::endl;
+//    }
 
     return 0;
-}
-
-
-void fillFullElements(vector<Node>& nodes, vector<Triangle>& elements, vector<FullTriangle>& fullElements)
-{
-    fullElements.clear();
-    FullTriangle newelement;
-    for (size_t i(0); i < elements.size(); ++i)
-    {
-        newelement.ID = elements[i].ID;
-        newelement.nodeA = nodes[elements[i].nodeA];
-        newelement.nodeB = nodes[elements[i].nodeB];
-        newelement.nodeC = nodes[elements[i].nodeC];
-        fullElements.push_back(newelement);
-    }
-    fullElements.shrink_to_fit();
 }
