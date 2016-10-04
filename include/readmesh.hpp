@@ -51,8 +51,9 @@ void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle>& 
             for (size_t j(0); j < number_of_tags; ++j) fin >> tagtrash;
             size_t a, b;
             fin >> a >> b;
-            boundaryNodes.push_back(a);
-            boundaryNodes.push_back(b);
+            boundaryNodes.push_back(a-1);
+            boundaryNodes.push_back(b-1);
+            //TODO most(or all) boundary nodes are doubled
             --num_triangles;
         }
         else

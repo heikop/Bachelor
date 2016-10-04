@@ -24,7 +24,7 @@ int main()
     vector<Triangle> elements;
     vector<FullTriangle> fullElements;
     vector<size_t> boundaryNodes;
-    readmesh("../data/square_fine.msh", nodes, elements, fullElements, boundaryNodes);
+    readmesh("../data/square_ultrafine.msh", nodes, elements, fullElements, boundaryNodes);
     std::cout << "read mesh" << std::endl;
     fillFullElements(nodes, elements, fullElements);
     std::cout << nodes.size() << ", " << elements.size() << std::endl;
@@ -62,9 +62,10 @@ int main()
     time[6] -= clock();
     std::cout << "assembled" << std::endl;
 
-
+    std::cout << std::endl << "nag format:" << std::endl;
     vector<size_t> num_neighbours, nag, num_midpoints, gaps, num_gaps;
-    readnag("../data/square_fine.nag", nodes, num_neighbours, nag, num_midpoints, gaps, num_gaps);
+    readnag("../data/square_ultrafine.nag", nodes, num_neighbours, nag, num_midpoints, gaps, num_gaps);
+    std::cout << "read nag" << std::endl;
 
     std::cout << std::endl << "start assembling cpu from nag-format" << std::endl;
     std::cout << "initialize matrix: ";
@@ -75,7 +76,7 @@ int main()
 
     std::cout << "assemble matrix: ";
     time[8] = clock();
-    assemble_cpu_nag_id(matrix_cpu_nag, num_neighbours, nag, num_midpoints, gaps, num_gaps, nodes)
+    assemble_cpu_nag_id(matrix_cpu_nag, num_neighbours, nag, num_midpoints, gaps, num_gaps, nodes);
     time[8] -= clock();
     std::cout << "assembled" << std::endl;
 
@@ -96,6 +97,13 @@ int main()
     std::cout.width(7); std::cout <<  "CPU" << " : "; std::cout.width(6); std::cout << duration[1]+duration[2]+duration[3] << " | "; std::cout.width(7); std::cout << duration[1] << ", "; std::cout.width(7); std::cout << duration[2] << ", "; std::cout.width(7); std::cout << duration[3]; std::cout << std::endl;
     std::cout.width(7); std::cout <<  "GPU" << " : "; std::cout.width(6); std::cout << duration[4]+duration[5]+duration[6] << " | "; std::cout.width(7); std::cout << duration[4] << ", "; std::cout.width(7); std::cout << duration[5] << ", "; std::cout.width(7); std::cout << duration[6]; std::cout << std::endl;
     std::cout.width(7); std::cout <<  "CPU nag" << " : "; std::cout.width(6); std::cout << duration[7]+duration[8] << " | "; std::cout.width(7); std::cout << duration[7] << ", "; std::cout.width(7); std::cout << "---" << ", "; std::cout.width(7); std::cout << duration[8]; std::cout << std::endl;
+
+//    std::cout << std::endl;
+//    matrix_cpu.print_local_data();
+//    std::cout << std::endl;
+//    matrix_cpu_nag.print_local_data();
+//    std::cout << std::endl;
+
 
     // matrix check
     for (size_t i(0); i < matrix_cpu._numrows_global; ++i)

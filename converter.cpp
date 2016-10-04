@@ -201,7 +201,7 @@ int msh_to_nag(std::ifstream& fin, std::ofstream& fout)
         bool top{false};
         bool right{false};
         bool left{false};
-        size_t first;
+        size_t first{0};
         for (size_t neighbour{0}; neighbour < num_neighbours[i] && ! top; ++neighbour)
         {
             if (nodes[nag[i*max_neighbours + neighbour]].y >= nodes[i].y)
@@ -294,7 +294,7 @@ int msh_to_nag(std::ifstream& fin, std::ofstream& fout)
     // write into new file
     fout << "# nag-format (node adjacent graph)" << std::endl << std::endl;
 
-    fout << "# nodecount
+    fout << "# nodecount" << std::endl;
     fout << num_nodes <<  std::endl;
     fout << "with IDs" << std::endl << std::endl;
 
