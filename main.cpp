@@ -20,15 +20,15 @@ int main()
     numnodes_id    = nodes_id.size();
     numelements_id = elements_id.size();
     nodes_id.resize(num_edgenodes);
-    mesh_q2("../data/square_q2.msh", nodes_full, elements_full, num_edgenodes);
-    numnodes_id    = nodes_full.size();
-    numelements_id = elements_full.size();
-    nodes_full.resize(num_edgenodes);
+//    mesh_q2("../data/square_q2.msh", nodes_full, elements_full, num_edgenodes);
+//    numnodes_id    = nodes_full.size();
+//    numelements_id = elements_full.size();
+//    nodes_full.resize(num_edgenodes);
 
     std::cout << std::endl << "IDs" << std::flush;
     time[0] = clock();
-    CsrMatrixCpu mat_id(nodes_id.size());
-    structure_id(mat_id, nodes_id, elements_id);
+    CsrMatrixCpu mat_id(numnodes_id);
+    structure_id(mat_id, elements_id);
     time[0] -= clock();
     time[1] = clock();
     assemble_id(mat_id, nodes_id, elements_id);
@@ -37,8 +37,8 @@ int main()
 
 //    std::cout << std::endl << "no IDs" << std::flush;
 //    time[2] = clock();
-//    CsrMatrixCpu mat_full(nodes_full.size());
-//    structure_full(mat_full, nodes_full, elements_full);
+//    CsrMatrixCpu mat_full(numnodes_full);
+//    structure_full(mat_full, elements_full);
 //    time[2] -= clock();
 //    time[3] = clock();
 //    assemble_full(mat_full, nodes_full, elements_full);

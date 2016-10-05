@@ -1,72 +1,150 @@
 #include "include/assemble.hpp"
 
-void assemble_id(CsrMatrixCpu& matrix, pstd::vector<Node>& nodes, std::vector<TriangleQ2>& elements)
+void structure_id(CsrMatrixCpu& matrix, std::vector<TriangleQ2>& elements)
+{
+    const size_t max_rowlength{30};
+
+    size_t* num_nonzeros = new size_t[matrix._numrows_local];
+    for (size_t i{0}; i < matrix._numrows_local; ++i)
+        num_nonzeros[i] = 0;
+
+    size_t* colind = new size_t[max_rowlength*matrix._numrows_local];
+
+    for (size_t i{0}; i < elements.size(); ++i)
+    {
+        size_t nodes[6];
+        nodes[0] = elements[i].nodeA;
+        nodes[1] = elements[i].nodeB;
+        nodes[2] = elements[i].nodeC;
+        nodes[3] = elements[i].nodeD;
+        nodes[4] = elements[i].nodeE;
+        nodes[5] = elements[i].nodeF;
+        for (size_t node1{0}; node1 < 6; ++node1)
+        {
+            for (size_t node2{0}; node2 < 6; ++node2)
+            {
+                int a{nodes[node1] - matrix._firstrow_on_local};
+                size_t b(nodes[node2]);
+                if (a >= 0 && static_cast<size_t>(a) < matrix._numrows_local)
+                {
+                    size_t j{0};
+                    while (j < num_nonzeros[a] && colind[a*max_rowlength + j] != b )
+                        ++j;
+                    if (num_nonzeros[a] == j)
+                    {
+                        ++(num_nonzeros[a]);
+                        assert(num_nonzeros[a] <= max_rowlength);
+                        colind[a*max_rowlength + j] = b;
+                    }
+                }
+            }
+        }
+    }
+
+    for (size_t i{0}; i < matrix._numrows_local; ++i)
+        for (size_t a{num_nonzeros[i]-1}; a > 0; --a)
+            for (size_t b{0}; b < a; ++b)
+                if (colind[i*max_rowlength + b] > colind[i*max_rowlength + b+1])
+                {
+                    size_t tmp{colind[i*max_rowlength + b]};
+                    colind[i*max_rowlength + b] = colind[i*max_rowlength + b+1];
+                    colind[i*max_rowlength + b+1] = tmp;
+                }
+
+    size_t num_values{0};
+    for (size_t i{0}; i < matrix._numrows_local; ++i)
+    {
+        matrix._rowptr[i] = num_values;
+        num_values += num_nonzeros[i];
+    }
+    matrix._rowptr[matrix._numrows_local] = num_values;
+    delete[] matrix._colind;
+    delete[] matrix._values;
+    matrix._colind = new size_t[num_values];
+    matrix._values = new float[num_values];
+
+    size_t current_pos{0};
+    for (size_t row{0}; row < matrix._numrows_local; ++row)
+        for (size_t col{0}; col < num_nonzeros[row]; ++col)
+            matrix._colind[current_pos++] = colind[row*max_rowlength + col];
+    for (size_t i{0}; i < num_values; ++i)
+        matrix._values[i] = 0.0;
+
+    delete[] num_nonzeros;
+    delete[] colind;
+}
+
+void assemble_id(CsrMatrixCpu& matrix, std::vector<Node>& nodes, std::vector<TriangleQ2>& elements)
 {
     for (const auto& elem : elements)
     {
         // B = [a b]
         //     [c d]
-        const float a{elem.nodeB.x - elem.nodeA.x};
-        const float c{elem.nodeB.y - elem.nodeA.y};
-        const float b{elem.nodeC.x - elem.nodeA.x};
-        const float d{elem.nodeC.y - elem.nodeA.y};
+        //const float a{elem.nodeB.x - elem.nodeA.x};
+        //const float c{elem.nodeB.y - elem.nodeA.y};
+        //const float b{elem.nodeC.x - elem.nodeA.x};
+        //const float d{elem.nodeC.y - elem.nodeA.y};
+        const float a{nodes[elem.nodeB].x - nodes[elem.nodeA].x};
+        const float c{nodes[elem.nodeB].y - nodes[elem.nodeA].y};
+        const float b{nodes[elem.nodeC].x - nodes[elem.nodeA].x};
+        const float d{nodes[elem.nodeC].y - nodes[elem.nodeA].y};
         const float detB(std::abs(a*d - b*c));
 
         const float bbdd{b*b + d*d};
         const float abcd{a*b + c*d};
         const float aacc{a*a + c*c};
 
-        matrix.add_global(elem.nodeA.ID, elem.nodeA.ID, (  3.0*bbdd -   6.0*abcd +   3.0*aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeA.ID, elem.nodeB.ID, (      bbdd -       abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeA.ID, elem.nodeC.ID, (           -       abcd +       aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeA.ID, elem.nodeD.ID, (  4.0*bbdd -   4.0*abcd             ) / (6.0 * detB);
-        //trix.add_global(elem.nodeA.ID, elem.nodeE.ID, (                                    ) / (6.0 * detB);
-        matrix.add_global(elem.nodeA.ID, elem.nodeF.ID, (           -   4.0*abcd +   4.0*aacc) / (6.0 * detB);
+        matrix.add_global(elem.nodeA, elem.nodeA, (  3.0*bbdd -   6.0*abcd +   3.0*aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeA, elem.nodeB, (      bbdd -       abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeA, elem.nodeC, (           -       abcd +       aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeA, elem.nodeD, (  4.0*bbdd -   4.0*abcd             ) / (6.0 * detB));
+        //trix.add_global(elem.nodeA, elem.nodeE, (                                    ) / (6.0 * detB));
+        matrix.add_global(elem.nodeA, elem.nodeF, (           -   4.0*abcd +   4.0*aacc) / (6.0 * detB));
 
-        matrix.add_global(elem.nodeB.ID, elem.nodeA.ID, (  3.0*bbdd -   6.0*abcd +   3.0*aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeB.ID, elem.nodeB.ID, (  3.0*bbdd                          ) / (6.0 * detB);
-        matrix.add_global(elem.nodeB.ID, elem.nodeC.ID, (                   abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeB.ID, elem.nodeD.ID, (-12.0*bbdd +   4.0*abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeB.ID, elem.nodeE.ID, (           -   4.0*abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeB.ID, elem.nodeF.ID, (               8.0*abcd             ) / (6.0 * detB);
+        matrix.add_global(elem.nodeB, elem.nodeA, (  3.0*bbdd -   6.0*abcd +   3.0*aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeB, elem.nodeB, (  3.0*bbdd                          ) / (6.0 * detB));
+        matrix.add_global(elem.nodeB, elem.nodeC, (                   abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeB, elem.nodeD, (-12.0*bbdd +   4.0*abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeB, elem.nodeE, (           -   4.0*abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeB, elem.nodeF, (               8.0*abcd             ) / (6.0 * detB));
 
-        matrix.add_global(elem.nodeC.ID, elem.nodeA.ID, (           -       abcd +       aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeC.ID, elem.nodeB.ID, (                   abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeC.ID, elem.nodeC.ID, (                            3.0*aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeC.ID, elem.nodeD.ID, (               8.0*abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeC.ID, elem.nodeE.ID, (           -   4.0*abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeC.ID, elem.nodeF.ID, (               4.0*abcd -  12.0*aacc) / (6.0 * detB);
+        matrix.add_global(elem.nodeC, elem.nodeA, (           -       abcd +       aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeC, elem.nodeB, (                   abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeC, elem.nodeC, (                            3.0*aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeC, elem.nodeD, (               8.0*abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeC, elem.nodeE, (           -   4.0*abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeC, elem.nodeF, (               4.0*abcd -  12.0*aacc) / (6.0 * detB));
 
-        matrix.add_global(elem.nodeD.ID, elem.nodeA.ID, (  4.0*bbdd -   4.0*abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeD.ID, elem.nodeB.ID, (-12.0*bbdd +   4.0*abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeD.ID, elem.nodeC.ID, (               8.0*abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeD.ID, elem.nodeD.ID, (200.0*bbdd -  72.0*abcd +   8.0*aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeD.ID, elem.nodeE.ID, (-32.0*bbdd +  40.0*abcd -   8.0*aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeD.ID, elem.nodeF.ID, ( 32.0*bbdd - 200.0*abcd +  32.0*aacc) / (6.0 * detB);
+        matrix.add_global(elem.nodeD, elem.nodeA, (  4.0*bbdd -   4.0*abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeD, elem.nodeB, (-12.0*bbdd +   4.0*abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeD, elem.nodeC, (               8.0*abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeD, elem.nodeD, (200.0*bbdd -  72.0*abcd +   8.0*aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeD, elem.nodeE, (-32.0*bbdd +  40.0*abcd -   8.0*aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeD, elem.nodeF, ( 32.0*bbdd - 200.0*abcd +  32.0*aacc) / (6.0 * detB));
 
-        //trix.add_global(elem.nodeE.ID, elem.nodeA.ID, (                                    ) / (6.0 * detB);
-        matrix.add_global(elem.nodeE.ID, elem.nodeB.ID, (           -   4.0*abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeE.ID, elem.nodeC.ID, (           -   4.0*abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeE.ID, elem.nodeD.ID, (-32.0*bbdd +  40.0*abcd -   8.0*aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeE.ID, elem.nodeE.ID, (  8.0*bbdd -   8.0*abcd +   8.0*aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeE.ID, elem.nodeF.ID, ( -8.0*bbdd +  40.0*abcd -  32.0*aacc) / (6.0 * detB);
+        //trix.add_global(elem.nodeE, elem.nodeA, (                                    ) / (6.0 * detB));
+        matrix.add_global(elem.nodeE, elem.nodeB, (           -   4.0*abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeE, elem.nodeC, (           -   4.0*abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeE, elem.nodeD, (-32.0*bbdd +  40.0*abcd -   8.0*aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeE, elem.nodeE, (  8.0*bbdd -   8.0*abcd +   8.0*aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeE, elem.nodeF, ( -8.0*bbdd +  40.0*abcd -  32.0*aacc) / (6.0 * detB));
 
-        matrix.add_global(elem.nodeF.ID, elem.nodeA.ID, (           -   4.0*abcd +   4.0*aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeF.ID, elem.nodeB.ID, (               8.0*abcd             ) / (6.0 * detB);
-        matrix.add_global(elem.nodeF.ID, elem.nodeC.ID, (               4.0*abcd -  12.0*aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeF.ID, elem.nodeD.ID, ( 32.0*bbdd - 200.0*abcd +  32.0*aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeF.ID, elem.nodeE.ID, ( -8.0*bbdd +  40.0*abcd -  32.0*aacc) / (6.0 * detB);
-        matrix.add_global(elem.nodeF.ID, elem.nodeF.ID, (  8.0*bbdd -  72.0*abcd + 200.0*aacc) / (6.0 * detB);
+        matrix.add_global(elem.nodeF, elem.nodeA, (           -   4.0*abcd +   4.0*aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeF, elem.nodeB, (               8.0*abcd             ) / (6.0 * detB));
+        matrix.add_global(elem.nodeF, elem.nodeC, (               4.0*abcd -  12.0*aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeF, elem.nodeD, ( 32.0*bbdd - 200.0*abcd +  32.0*aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeF, elem.nodeE, ( -8.0*bbdd +  40.0*abcd -  32.0*aacc) / (6.0 * detB));
+        matrix.add_global(elem.nodeF, elem.nodeF, (  8.0*bbdd -  72.0*abcd + 200.0*aacc) / (6.0 * detB));
 
     }
 }
 
 
-void mesh_q2(string filename, std::vector<Node>& nodes, std::vector<TriangleQ2>& elements, size_t& highest_edgenode)
+void mesh_q2(std::string filename, std::vector<Node>& nodes, std::vector<TriangleQ2>& elements, size_t& highest_edgenode)
 {
-    ifstream fin(filename);
+    std::ifstream fin(filename);
 
-    string tmp;
+    std::string tmp;
     do { fin >> tmp; } while(tmp != "$Nodes");
     size_t num_nodes; fin >> num_nodes;
     nodes.resize(num_nodes);
@@ -104,14 +182,13 @@ void mesh_q2(string filename, std::vector<Node>& nodes, std::vector<TriangleQ2>&
             if (elements[current].nodeA > highest_edgenode)
                 highest_edgenode = elements[current].nodeA;
             if (elements[current].nodeB > highest_edgenode)
-                highest_egdenode = elements[current].nodeB;
+                highest_edgenode = elements[current].nodeB;
             if (elements[current].nodeC > highest_edgenode)
                 highest_edgenode = elements[current].nodeC;
             ++current;
         }
         else
         {
-            --num_triangles;
             fin.ignore(256, '\n');
         }
     }
