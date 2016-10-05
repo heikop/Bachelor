@@ -9,6 +9,7 @@
 #include <iostream>
 
 struct TriangleQ2 { size_t ID; size_t nodeA; size_t nodeB; size_t nodeC; size_t nodeD; size_t nodeE; size_t nodeF; };
+struct FullTriangleQ2 { size_t ID; Node nodeA; Node nodeB; Node nodeC; size_t nodeD; size_t nodeE; size_t nodeF; };
 
 void mesh_q2(std::string filename, std::vector<Node>& nodes, std::vector<TriangleQ2>& elements, size_t& highest_edgenode);
 
