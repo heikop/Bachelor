@@ -5,8 +5,10 @@
 #include <cstddef>
 
 #include "include/global.hpp"
+#include "include/assemble.hpp"
 
-int msh_to_nag(std::ifstream& fin, std::ofstream& fout);
+int msh_to_nag_q1(std::ifstream& fin, std::ofstream& fout);
+int msh_to_nag_q2(std::ifstream& fin, std::ofstream& fout);
 
 // ***** // ***** // ***** // ***** // ***** main ***** // ***** // ***** // ***** // ***** //
 int main(int argc, char* argv[])
@@ -27,7 +29,12 @@ int main(int argc, char* argv[])
         std::cout << "no output format was given." << std::endl;
         return 20;
     }
-    if (argc > 3)
+    if (argc == 3)
+    {
+        std::cout << "no polynome degree was given." << std::endl;
+        return 30;
+    }
+    if (argc > 4)
         std::cout << "too many inputs given. only the first two will be used." << std::endl;
 
     std::string input_file{argv[1]};
@@ -55,16 +62,324 @@ int main(int argc, char* argv[])
 
     std::cout << " input file: " <<  input_file << std::endl;
     std::cout << "output file: " << output_file << std::endl;
+
+    std::string polynom_type{argv[3]};
     if (input_format == "msh" && output_format == "nag")
-        return msh_to_nag(fin, fout);
+    {
+        if (polynom_type == "q1" || polynom_type == "Q1")
+            return msh_to_nag_q1(fin, fout);
+        else if (polynom_type == "q2" || polynom_type == "Q2")
+            return msh_to_nag_q2(fin, fout);
+    }
 
     std::cout << "no suitable converting function from '" << input_format
-              << "' to '" << output_format << "' found." << std::endl;
+              << "' to '" << output_format << "' with polynoms of " << polynom_type << " found." << std::endl;
     return -10;
 }
 
-// ***** // ***** // ***** // ***** // ***** msh_to_nag ***** // ***** // ***** // ***** // ***** //
-int msh_to_nag(std::ifstream& fin, std::ofstream& fout)
+// ***** // ***** // ***** // ***** // ***** msh_to_nag_q2 ***** // ***** // ***** // ***** // ***** //
+int msh_to_nag_q2(std::ifstream& fin, std::ofstream& fout)
+{
+    std::cout << "start converting from 'msh' to 'nag'." << std::endl;
+
+    const size_t max_neighbours{30};
+    const size_t max_gaps{1};
+    // read input msh file
+    std::string tmp;
+    do { fin >> tmp; } while(tmp != "$Nodes");
+    size_t num_nodes; fin >> num_nodes;
+    std::vector<Node> nodes(num_nodes);
+    std::vector<size_t> tuples(5 * num_nodes * max_neighbours);
+    std::vector<size_t> num_neighbours(num_nodes, 0);
+    std::vector<size_t> gaps(num_nodes * max_gaps, 0);
+    std::vector<size_t> num_midpoints(num_nodes, 0);
+
+    std::cout << " - read input file" << std::flush;
+    // read and save nodes
+    double z_coord_trash;
+    for (size_t i{0}; i < num_nodes; ++i)
+    {
+        fin >> nodes[i].ID >> nodes[i].x >> nodes[i].y >> z_coord_trash;
+        --nodes[i].ID;
+    }
+
+    size_t num_edgenodes = 0;
+
+    // read elements and save the pairs
+    do { fin >> tmp; } while(tmp != "$Elements");
+    size_t num_elements; fin >> num_elements;
+    for (size_t i{0}; i < num_elements; ++i)
+    {
+        size_t ID; fin >> ID;
+        size_t type; fin >> type;
+        if (type == 9)
+        {
+            size_t number_of_tags; fin >> number_of_tags;
+            size_t tagtrash;
+            for (size_t j{0}; j < number_of_tags; ++j) fin >> tagtrash;
+            size_t nodes[6];
+            fin >> nodes[0] >> nodes[1] >> nodes[2] >> nodes[3] >> nodes[4] >> nodes[5];
+                 --nodes[0]; --nodes[1]; --nodes[2]; --nodes[3]; --nodes[4]; --nodes[5];
+
+            tuples[5 * (nodes[0] * max_neighbours + num_neighbours[nodes[0]])    ] = nodes[3];
+            tuples[5 * (nodes[0] * max_neighbours + num_neighbours[nodes[0]]) + 1] = nodes[1];
+            tuples[5 * (nodes[0] * max_neighbours + num_neighbours[nodes[0]]) + 2] = nodes[4];
+            tuples[5 * (nodes[0] * max_neighbours + num_neighbours[nodes[0]]) + 3] = nodes[2];
+            tuples[5 * (nodes[0] * max_neighbours + num_neighbours[nodes[0]]) + 4] = nodes[5];
+
+            tuples[5 * (nodes[1] * max_neighbours + num_neighbours[nodes[1]])    ] = nodes[4];
+            tuples[5 * (nodes[1] * max_neighbours + num_neighbours[nodes[1]]) + 1] = nodes[2];
+            tuples[5 * (nodes[1] * max_neighbours + num_neighbours[nodes[1]]) + 2] = nodes[5];
+            tuples[5 * (nodes[1] * max_neighbours + num_neighbours[nodes[1]]) + 3] = nodes[0];
+            tuples[5 * (nodes[1] * max_neighbours + num_neighbours[nodes[1]]) + 4] = nodes[3];
+
+            tuples[5 * (nodes[2] * max_neighbours + num_neighbours[nodes[2]])    ] = nodes[5];
+            tuples[5 * (nodes[2] * max_neighbours + num_neighbours[nodes[2]]) + 1] = nodes[0];
+            tuples[5 * (nodes[2] * max_neighbours + num_neighbours[nodes[2]]) + 2] = nodes[3];
+            tuples[5 * (nodes[2] * max_neighbours + num_neighbours[nodes[2]]) + 3] = nodes[1];
+            tuples[5 * (nodes[2] * max_neighbours + num_neighbours[nodes[2]]) + 4] = nodes[4];
+
+            ++num_neighbours[nodes[0]];
+            ++num_neighbours[nodes[1]];
+            ++num_neighbours[nodes[2]];
+
+            if (nodes[0] > num_edgenodes)
+                num_edgenodes = nodes[0];
+            if (nodes[1] > num_edgenodes)
+                num_edgenodes = nodes[1];
+            if (nodes[2] > num_edgenodes)
+                num_edgenodes = nodes[2];
+        }
+        else
+            fin.ignore(256, '\n');
+    }
+    tuples.resize(5 * num_edgenodes * max_neighbours);
+    num_neighbours.resize(num_edgenodes);
+    gaps.resize(num_edgenodes * max_gaps);
+    num_midpoints.resize(num_edgenodes);
+    std::cout << ". done" << std::endl;
+
+    std::cout << " - create adjacents graph" << std::flush;
+    // count gaps
+    std::vector<size_t> num_gaps(num_edgenodes, 0);
+    for (size_t i{0}; i < num_edgenodes; ++i)
+    {
+        for (size_t a{1}; a < 5*num_neighbours[i]; a+=5)
+        {
+            bool gap{true};
+            for (size_t b{3}; gap && b < 5*num_neighbours[i]; b+=5)
+                if (tuples[5*max_neighbours*i + a] == tuples[5*max_neighbours*i + b])
+                    gap = false;
+            if (gap)
+                ++num_gaps[i];
+        }
+    }
+
+    // first sorted version of nag but with wrong start
+    // TODO TOCHECK what happens when num_gaps > 1 ?
+    std::vector<size_t> nag(num_edgenodes * 3 * max_neighbours);
+    for (size_t i{0}; i < num_edgenodes; ++i)
+    {
+std::cout << "i = " << i << std::endl;
+        if (num_gaps[i] == 0)
+        {
+            nag[i*3*max_neighbours    ] = tuples[5*i*max_neighbours + 1]; // edge
+            nag[i*3*max_neighbours + 1] = tuples[5*i*max_neighbours + 3]; // edge
+            nag[i*3*max_neighbours + num_neighbours[i]    ] = tuples[5*i*max_neighbours    ]; // mid
+            nag[i*3*max_neighbours + num_neighbours[i] + 1] = tuples[5*i*max_neighbours + 2]; // mid
+            size_t current{1};
+            for (size_t k{0}; k < num_neighbours[i]-1; ++k)
+            {
+                for (size_t a{1}; a < 5*num_neighbours[i]; a+=5)
+                    if (nag[i*max_neighbours + current] == tuples[5*i*max_neighbours + a])
+                    {
+                        ++current;
+                        nag[i*3*max_neighbours + current] = tuples[5*i*max_neighbours + a + 2]; // edge
+                        nag[i*3*max_neighbours + num_neighbours[i] + 2*current    ] = tuples[5*i*max_neighbours + a - 1]; // mid
+                        nag[i*3*max_neighbours + num_neighbours[i] + 2*current + 1] = tuples[5*i*max_neighbours + a + 1]; // mid
+                    }
+            }
+        }
+        else if (num_gaps[i] == 1)
+        {
+            size_t start{0};
+            bool unique{false};
+            while (! unique)
+            {
+                unique = true;
+                for (size_t l{start+1}; l < num_neighbours[i]; ++l)
+                    if (tuples[5*(i*max_neighbours + l) + 3] == tuples[5*(i*max_neighbours+start) + 1])
+                        unique = false;
+                ++start;
+            }
+            --start;
+            nag[i*3*max_neighbours    ] = tuples[5*(i*max_neighbours + start) + 1];
+            nag[i*3*max_neighbours + 1] = tuples[5*(i*max_neighbours + start) + 3];
+            nag[i*3*max_neighbours + num_neighbours[i]    ] = tuples[5*(i*max_neighbours + start)    ]; // mid
+            nag[i*3*max_neighbours + num_neighbours[i] + 1] = tuples[5*(i*max_neighbours + start) + 2]; // mid
+            size_t current{1};
+            for (size_t k{0}; k < num_neighbours[i]-1; ++k)
+            {
+                for (size_t a{1}; a < 5*num_neighbours[i]; a+=5)
+                    if (nag[i*3*max_neighbours + current] == tuples[5*i*max_neighbours + a])
+                    {
+                        ++current;
+                        nag[i*3*max_neighbours + current] = tuples[5*i*max_neighbours + a + 2]; // edge
+                        nag[i*3*max_neighbours + num_neighbours[i] + 2*current    ] = tuples[5*i*max_neighbours + a - 1]; // mid
+                        nag[i*3*max_neighbours + num_neighbours[i] + 2*current + 1] = tuples[5*i*max_neighbours + a + 1]; // mid
+                    }
+            }
+            ++num_neighbours[i];
+            // gaps[i] is already 0
+        }
+        else
+        {
+            std::cout << "the special case of more then one disconnection is not implemented (yet)." << std::endl;
+            return -2;
+        }
+    }
+    std::cout << ". done" << std::endl;
+
+    std::cout << " - reorder graph entries" << std::flush;
+    // sort to begin at x,0 or the nearest counterclockwise
+    for (size_t i{0}; i < num_nodes; ++i)
+    {
+        // first step: check where to start
+        bool top{false};
+        bool right{false};
+        bool left{false};
+        size_t first{0};
+        for (size_t neighbour{0}; neighbour < num_neighbours[i] && ! top; ++neighbour)
+        {
+            if (nodes[nag[i*max_neighbours + neighbour]].y >= nodes[i].y)
+            {
+                top = true;
+                first = neighbour;
+            }
+        }
+        if (top)
+        {
+            for (size_t neighbour{first}; neighbour < num_neighbours[i] && ! right; ++neighbour)
+                if (nodes[nag[i*max_neighbours + neighbour]].x >= nodes[i].x && nodes[nag[i*max_neighbours + neighbour]].y >= nodes[i].y)
+                {
+                    right = true;
+                    first = neighbour;
+                }
+        }
+        else
+        {
+            for (size_t neighbour{first}; neighbour < num_neighbours[i] && ! left; ++neighbour)
+                if (nodes[nag[i*max_neighbours + neighbour]].x <= nodes[i].x && nodes[nag[i*max_neighbours + neighbour]].y < nodes[i].y)
+                {
+                    left = true;
+                    first = neighbour;
+                }
+        }
+
+        if (top && right)
+        {
+            for (size_t neighbour{first+1}; neighbour < num_neighbours[i]; ++neighbour)
+                if (nodes[nag[i*max_neighbours + neighbour]].x >= nodes[i].x && 
+                    nodes[nag[i*max_neighbours + neighbour]].y >= nodes[i].y && 
+                    nodes[nag[i*max_neighbours + neighbour]].y < nodes[nag[i*max_neighbours + first]].y)
+                    first = neighbour;
+        }
+        else if (top && left)
+        {
+            for (size_t neighbour{first+1}; neighbour < num_neighbours[i]; ++neighbour)
+                if (nodes[nag[i*max_neighbours + neighbour]].x < nodes[i].x && 
+                    nodes[nag[i*max_neighbours + neighbour]].y >= nodes[i].y && 
+                    nodes[nag[i*max_neighbours + neighbour]].x > nodes[nag[i*max_neighbours + first]].x)
+                    first = neighbour;
+        }
+        else if (left) // && bottom
+        {
+            for (size_t neighbour{first+1}; neighbour < num_neighbours[i]; ++neighbour)
+                if (nodes[nag[i*max_neighbours + neighbour]].x < nodes[i].x && 
+                    nodes[nag[i*max_neighbours + neighbour]].y < nodes[i].y && 
+                    nodes[nag[i*max_neighbours + neighbour]].x > nodes[nag[i*max_neighbours + first]].x)
+                    first = neighbour;
+        }
+        else // right && bottom
+        {
+            for (size_t neighbour{first+1}; neighbour < num_neighbours[i]; ++neighbour)
+                if (nodes[nag[i*max_neighbours + neighbour]].x < nodes[i].x && 
+                    nodes[nag[i*max_neighbours + neighbour]].y < nodes[i].y && 
+                    nodes[nag[i*max_neighbours + neighbour]].y > nodes[nag[i*max_neighbours + first]].y)
+                    first = neighbour;
+        }
+
+//TODO BEGIN
+        // second step: reorder
+        size_t temporary_nag[max_neighbours];
+        for (size_t neighbour{0}; neighbour < first; ++neighbour)
+            temporary_nag[neighbour] = nag[i*max_neighbours + neighbour];
+        for (size_t neighbour{0}; neighbour < num_neighbours[i] - first; ++neighbour)
+            nag[i*max_neighbours + neighbour] = nag[i*max_neighbours + first + neighbour];
+        for (size_t neighbour{0}; neighbour < first; ++neighbour)
+            nag[i*max_neighbours + num_neighbours[i] - first + neighbour] = temporary_nag[neighbour];
+//TODO END
+
+        // third step: update gap(s)
+        for (size_t gap{0}; gap < num_gaps[i]; ++gap)
+            gaps[i*max_gaps + gap] = (gaps[i*max_gaps + gap] + num_neighbours[i] - first) % num_neighbours[i];
+    }
+    std::cout << ". done" << std::endl;
+
+    // count 'num midpoints to calc' (num nodes in the first two quarters: y >= 0 && x > 0 or y > 0 && x <= 0, with current node = 0,0)
+    for (size_t i{0}; i < num_nodes; ++i)
+    {
+        for (size_t neighbour{0}; neighbour < num_neighbours[i]; ++neighbour)
+        {
+            if ((nodes[nag[i*max_neighbours + neighbour]].y >= nodes[i].y && 
+                 nodes[nag[i*max_neighbours + neighbour]].x >  nodes[i].x    )
+             || (nodes[nag[i*max_neighbours + neighbour]].y >  nodes[i].y && 
+                 nodes[nag[i*max_neighbours + neighbour]].x <= nodes[i].x    ))
+                ++num_midpoints[i];
+        }
+    }
+
+    std::cout << " - write output" << std::flush;
+    // write into new file
+    fout << "# nag-format (node adjacent graph)" << std::endl << std::endl;
+
+    fout << "# nodecount" << std::endl;
+    fout << num_nodes <<  std::endl;
+    fout << "# edgenodecount" << std::endl;
+    fout << num_edgenodes <<  std::endl;
+    fout << "with IDs" << std::endl << std::endl;
+
+    //fout << "# nodes : ID - xcoord - ycoord" << std::endl;
+    fout << "# edgenodes" << std::endl;
+    for (size_t i{0}; i < num_edgenodes; ++i)
+        fout << nodes[i].ID << " " << nodes[i].x << " " << nodes[i].y << std::endl;
+    fout << std::endl;
+
+    //fout << "# adjacent-graph : node ID - num neighbour nodes - num midpoints to calc (num nodes in first two quarters) - num gaps - [gaps] - neighbour IDs" << std::endl;
+    fout << "# adjacent-graph" << std::endl;
+    for (size_t i{0}; i < num_edgenodes; ++i)
+    {
+        fout << nodes[i].ID << " " << num_neighbours[i] << " " << num_midpoints[i] << " " << num_gaps[i] << " ";
+        for (size_t gap{0}; gap < num_gaps[i]; ++gap)
+            fout << gaps[i*max_gaps + gap] << " ";
+        //for (size_t neighbours{0}; neighbours < num_neighbours[i]; ++neighbours)
+        //    fout << nag[i*3*max_neighbours + neighbours] << " ";
+        //for (size_t midneighbours{num_neighbours[i]}; midneighbours < 3*num_neighbours[i] - num_gaps[i]; ++midneighbours)
+        //    fout << nag[i*3*max_neighbours + midneighbours] << " ";
+        for (size_t neighbours{0}; neighbours < 3*num_neighbours[i] - num_gaps[i]; ++neighbours)
+            fout << nag[i*3*max_neighbours + neighbours] << " ";
+        fout << std::endl;
+    }
+    std::cout << ". done" << std::endl;
+
+    fin.close();
+    fout.close();
+    std::cout << "done converting" << std::endl;
+    return 0;
+}
+
+// ***** // ***** // ***** // ***** // ***** msh_to_nag_q1 ***** // ***** // ***** // ***** // ***** //
+int msh_to_nag_q1(std::ifstream& fin, std::ofstream& fout)
 {
     std::cout << "start converting from 'msh' to 'nag'." << std::endl;
 

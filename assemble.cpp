@@ -1,6 +1,75 @@
 #include "include/assemble.hpp"
 
-/////////////////////////////////////////// full
+/////////////////////////////////////////// nag id
+void nag_q2_id(std::string filename,
+               std::vector<Node>& nodes,
+               std::vector<size_t>& num_neighbours,
+               std::vector<size_t>& nag,
+               std::vector<size_t>& num_midpoints,
+               std::vector<size_t>& gaps,
+               std::vector<size_t>& num_gaps)
+{
+    nodes.clear();
+    num_neighbours.clear();
+    nag.clear();
+    num_midpoints.clear();
+    gaps.clear();
+    num_gaps.clear();
+
+    std::ifstream fin(filename);
+
+    std::string tmp;
+    do { fin >> tmp; } while(tmp != "nodecount");
+    size_t num_nodes; fin >> num_nodes;
+    fin >> tmp;
+    bool withIDs{tmp == "with"};
+    fin >> tmp;
+    if (withIDs && tmp == "IDs")
+    {
+        // everything ok. nothing happens
+    }
+    else
+    {
+        withIDs = false;
+        std::cout << "without IDs is not implemented (yet)." << std::endl;
+        return;
+    }
+
+    const size_t max_gaps{1};
+    nodes.resize(num_nodes);
+    num_neighbours.resize(num_nodes);
+    //nag.resize(num_nodes);
+    num_midpoints.resize(num_nodes);
+    gaps.resize(max_gaps * num_nodes);
+    num_gaps.resize(num_nodes);
+
+    do { fin >> tmp; } while(tmp != "nodes");
+    for (size_t i{0}; i < num_nodes; ++i)
+        fin >> nodes[i].ID >> nodes[i].x >> nodes[i].y;
+
+    do { fin >> tmp; } while(tmp != "adjacent-graph");
+    size_t current{0};
+    for (size_t i{0}; i < num_nodes; ++i)
+    {
+        size_t actual_node_id;
+        fin >> actual_node_id;
+        fin >> num_neighbours[i] >> num_midpoints[i] >> num_gaps[i];
+        assert(num_gaps[i] <= max_gaps);
+        for (size_t gap{0}; gap < num_gaps[i]; ++gap)
+            fin >> gaps[i*max_gaps + gap];
+        for (size_t neighbours{0}; neighbours < num_neighbours[i]; ++neighbours)
+        {
+            fin >> current;
+            nag.push_back(current);
+//            fin >> nag[current];
+//            ++current;
+            // in short, pre or post?: fin >> nag[++current++];
+        }
+    }
+    nag.shrink_to_fit();
+}
+
+/////////////////////////////////////////// mesh full
 void assemble_full(CsrMatrixCpu& matrix, std::vector<FullTriangleQ2>& elements)
 {
     for (const auto& elem : elements)
@@ -65,9 +134,10 @@ void assemble_full(CsrMatrixCpu& matrix, std::vector<FullTriangleQ2>& elements)
 
     }
 }
+
 void structure_full(CsrMatrixCpu& matrix, std::vector<FullTriangleQ2>& elements)
 {
-    const size_t max_rowlength{30};
+    const size_t max_rowlength{40};
 
     size_t* num_nonzeros = new size_t[matrix._numrows_local];
     for (size_t i{0}; i < matrix._numrows_local; ++i)
@@ -148,7 +218,7 @@ void mesh_q2_full(std::string filename, std::vector<FullTriangleQ2>& elements, s
     size_t num_nodes; fin >> num_nodes;
     std::vector<Node> nodes(num_nodes);
     double z_coord_trash;
-    for (size_t i(0); i < num_nodes; ++i)
+    for (size_t i{0}; i < num_nodes; ++i)
     {
         fin >> nodes[i].ID >> nodes[i].x >> nodes[i].y >> z_coord_trash;
         --nodes[i].ID;
@@ -200,23 +270,138 @@ void mesh_q2_full(std::string filename, std::vector<FullTriangleQ2>& elements, s
     }
 }
 
-/////////////////////////////////////////// ID
+/////////////////////////////////////////// mesh ID
 void assemble_id(CsrMatrixCpu& matrix, std::vector<Node>& nodes, std::vector<TriangleQ2>& elements)
 {
     for (const auto& elem : elements)
     {
         // B = [a b]
         //     [c d]
-        //const float a{elem.nodeB.x - elem.nodeA.x};
-        //const float c{elem.nodeB.y - elem.nodeA.y};
-        //const float b{elem.nodeC.x - elem.nodeA.x};
-        //const float d{elem.nodeC.y - elem.nodeA.y};
         const float a{nodes[elem.nodeB].x - nodes[elem.nodeA].x};
         const float c{nodes[elem.nodeB].y - nodes[elem.nodeA].y};
         const float b{nodes[elem.nodeC].x - nodes[elem.nodeA].x};
         const float d{nodes[elem.nodeC].y - nodes[elem.nodeA].y};
         const float detB{std::abs(a*d - b*c)};
 
+        const float A{ d/detB};
+        const float B{-c/detB};
+        const float C{-b/detB};
+        const float D{ a/detB};
+
+        matrix.add_global(elem.nodeA, elem.nodeA, ( (-    A-    B)*(-    A-    B) + (-    C-    D)*(-    C-    D)
+                                                  + (-    A-    B)*(-    A-    B) + (-    C-    D)*(-    C-    D)
+                                                  + (     A+    B)*(     A+    B) + (     C+    D)*(     C+    D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeA, elem.nodeB, ( (-    A-    B)*(-    A      ) + (-    C-    D)*(-    C      )
+                                                  + (-    A-    B)*(     A      ) + (-    C-    D)*(     C      )
+                                                  + (     A+    B)*(     A      ) + (     C+    D)*(     C      ) ) * detB / 6.0);
+        matrix.add_global(elem.nodeA, elem.nodeC, ( (-    A-    B)*(           B) + (-    C-    D)*(           D)
+                                                  + (-    A-    B)*(      -    B) + (-    C-    D)*(      -    D)
+                                                  + (     A+    B)*(           B) + (     C+    D)*(           D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeA, elem.nodeD, ( (-    A-    B)*( 2.0*A      ) + (-    C-    D)*( 2.0*C      )
+                                                  + (-    A-    B)*(      -2.0*B) + (-    C-    D)*(      -2.0*D)
+                                                  + (     A+    B)*(-2.0*A-2.0*B) + (     C+    D)*(-2.0*C-2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeA, elem.nodeE, ( (-    A-    B)*( 2.0*A      ) + (-    C-    D)*( 2.0*C      )
+                                                  + (-    A-    B)*(       2.0*B) + (-    C-    D)*(       2.0*D)
+                                                  + (     A+    B)*( 2.0*A+2.0*B) + (     C+    D)*( 2.0*C+2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeA, elem.nodeF, ( (-    A-    B)*(-2.0*A      ) + (-    C-    D)*(-2.0*C      )
+                                                  + (-    A-    B)*(       2.0*B) + (-    C-    D)*(       2.0*D)
+                                                  + (     A+    B)*(-2.0*A-2.0*B) + (     C+    D)*(-2.0*C-2.0*D) ) * detB / 6.0);
+
+        matrix.add_global(elem.nodeB, elem.nodeA, ( (-    A      )*(-    A-    B) + (-    C      )*(-    C-    D)
+                                                  + (     A      )*(-    A-    B) + (     C      )*(-    C-    D)
+                                                  + (     A      )*(     A+    B) + (     C      )*(     C+    D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeB, elem.nodeB, ( (-    A      )*(-    A      ) + (-    C      )*(-    C      )
+                                                  + (     A      )*(     A      ) + (     C      )*(     C      )
+                                                  + (     A      )*(     A      ) + (     C      )*(     C      ) ) * detB / 6.0);
+        matrix.add_global(elem.nodeB, elem.nodeC, ( (-    A      )*(           B) + (-    C      )*(           D)
+                                                  + (     A      )*(      -    B) + (     C      )*(      -    D)
+                                                  + (     A      )*(           B) + (     C      )*(           D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeB, elem.nodeD, ( (-    A      )*( 2.0*A      ) + (-    C      )*( 2.0*C      )
+                                                  + (     A      )*(      -2.0*B) + (     C      )*(      -2.0*D)
+                                                  + (     A      )*(-2.0*A-2.0*B) + (     C      )*(-2.0*C-2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeB, elem.nodeE, ( (-    A      )*( 2.0*A      ) + (-    C      )*( 2.0*C      )
+                                                  + (     A      )*(       2.0*B) + (     C      )*(       2.0*D)
+                                                  + (     A      )*( 2.0*A+2.0*B) + (     C      )*( 2.0*C+2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeB, elem.nodeF, ( (-    A      )*(-2.0*A      ) + (-    C      )*(-2.0*C      )
+                                                  + (     A      )*(       2.0*B) + (     C      )*(       2.0*D)
+                                                  + (     A      )*(-2.0*A-2.0*B) + (     C      )*(-2.0*C-2.0*D) ) * detB / 6.0);
+
+        matrix.add_global(elem.nodeC, elem.nodeA, ( (           B)*(-    A-    B) + (           D)*(-    C-    D)
+                                                  + (      -    B)*(-    A-    B) + (      -    D)*(-    C-    D)
+                                                  + (           B)*(     A+    B) + (           D)*(     C+    D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeC, elem.nodeB, ( (           B)*(-    A      ) + (           D)*(-    C      )
+                                                  + (      -    B)*(     A      ) + (      -    D)*(     C      )
+                                                  + (           B)*(     A      ) + (           D)*(     C      ) ) * detB / 6.0);
+        matrix.add_global(elem.nodeC, elem.nodeC, ( (           B)*(           B) + (           D)*(           D)
+                                                  + (      -    B)*(      -    B) + (      -    D)*(      -    D)
+                                                  + (           B)*(           B) + (           D)*(           D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeC, elem.nodeD, ( (           B)*( 2.0*A      ) + (           D)*( 2.0*C      )
+                                                  + (      -    B)*(      -2.0*B) + (      -    D)*(      -2.0*D)
+                                                  + (           B)*(-2.0*A-2.0*B) + (           D)*(-2.0*C-2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeC, elem.nodeE, ( (           B)*( 2.0*A      ) + (           D)*( 2.0*C      )
+                                                  + (      -    B)*(       2.0*B) + (      -    D)*(       2.0*D)
+                                                  + (           B)*( 2.0*A+2.0*B) + (           D)*( 2.0*C+2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeC, elem.nodeF, ( (           B)*(-2.0*A      ) + (           D)*(-2.0*C      )
+                                                  + (      -    B)*(       2.0*B) + (      -    D)*(       2.0*D)
+                                                  + (           B)*(-2.0*A-2.0*B) + (           D)*(-2.0*C-2.0*D) ) * detB / 6.0);
+
+        matrix.add_global(elem.nodeD, elem.nodeA, ( ( 2.0*A      )*(-    A-    B) + ( 2.0*C      )*(-    C-    D)
+                                                  + (      -2.0*B)*(-    A-    B) + (      -2.0*D)*(-    C-    D)
+                                                  + (-2.0*A-2.0*B)*(     A+    B) + (-2.0*C-2.0*D)*(     C+    D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeD, elem.nodeB, ( ( 2.0*A      )*(-    A      ) + ( 2.0*C      )*(-    C      )
+                                                  + (      -2.0*B)*(     A      ) + (      -2.0*D)*(     C      )
+                                                  + (-2.0*A-2.0*B)*(     A      ) + (-2.0*C-2.0*D)*(     C      ) ) * detB / 6.0);
+        matrix.add_global(elem.nodeD, elem.nodeC, ( ( 2.0*A      )*(           B) + ( 2.0*C      )*(           D)
+                                                  + (      -2.0*B)*(      -    B) + (      -2.0*D)*(      -    D)
+                                                  + (-2.0*A-2.0*B)*(           B) + (-2.0*C-2.0*D)*(           D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeD, elem.nodeD, ( ( 2.0*A      )*( 2.0*A      ) + ( 2.0*C      )*( 2.0*C      )
+                                                  + (      -2.0*B)*(      -2.0*B) + (      -2.0*D)*(      -2.0*D)
+                                                  + (-2.0*A-2.0*B)*(-2.0*A-2.0*B) + (-2.0*C-2.0*D)*(-2.0*C-2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeD, elem.nodeE, ( ( 2.0*A      )*( 2.0*A      ) + ( 2.0*C      )*( 2.0*C      )
+                                                  + (      -2.0*B)*(       2.0*B) + (      -2.0*D)*(       2.0*D)
+                                                  + (-2.0*A-2.0*B)*( 2.0*A+2.0*B) + (-2.0*C-2.0*D)*( 2.0*C+2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeD, elem.nodeF, ( ( 2.0*A      )*(-2.0*A      ) + ( 2.0*C      )*(-2.0*C      )
+                                                  + (      -2.0*B)*(       2.0*B) + (      -2.0*D)*(       2.0*D)
+                                                  + (-2.0*A-2.0*B)*(-2.0*A-2.0*B) + (-2.0*C-2.0*D)*(-2.0*C-2.0*D) ) * detB / 6.0);
+
+        matrix.add_global(elem.nodeE, elem.nodeA, ( ( 2.0*A      )*(-    A-    B) + ( 2.0*C      )*(-    C-    D)
+                                                  + (       2.0*B)*(-    A-    B) + (       2.0*D)*(-    C-    D)
+                                                  + ( 2.0*A+2.0*B)*(     A+    B) + ( 2.0*C+2.0*D)*(     C+    D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeE, elem.nodeB, ( ( 2.0*A      )*(-    A      ) + ( 2.0*C      )*(-    C      )
+                                                  + (       2.0*B)*(     A      ) + (       2.0*D)*(     C      )
+                                                  + ( 2.0*A+2.0*B)*(     A      ) + ( 2.0*C+2.0*D)*(     C      ) ) * detB / 6.0);
+        matrix.add_global(elem.nodeE, elem.nodeC, ( ( 2.0*A      )*(           B) + ( 2.0*C      )*(           D)
+                                                  + (       2.0*B)*(      -    B) + (       2.0*D)*(      -    D)
+                                                  + ( 2.0*A+2.0*B)*(           B) + ( 2.0*C+2.0*D)*(           D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeE, elem.nodeD, ( ( 2.0*A      )*( 2.0*A      ) + ( 2.0*C      )*( 2.0*C      )
+                                                  + (       2.0*B)*(      -2.0*B) + (       2.0*D)*(      -2.0*D)
+                                                  + ( 2.0*A+2.0*B)*(-2.0*A-2.0*B) + ( 2.0*C+2.0*D)*(-2.0*C-2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeE, elem.nodeE, ( ( 2.0*A      )*( 2.0*A      ) + ( 2.0*C      )*( 2.0*C      )
+                                                  + (       2.0*B)*(       2.0*B) + (       2.0*D)*(       2.0*D)
+                                                  + ( 2.0*A+2.0*B)*( 2.0*A+2.0*B) + ( 2.0*C+2.0*D)*( 2.0*C+2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeE, elem.nodeF, ( ( 2.0*A      )*(-2.0*A      ) + ( 2.0*C      )*(-2.0*C      )
+                                                  + (       2.0*B)*(       2.0*B) + (       2.0*D)*(       2.0*D)
+                                                  + ( 2.0*A+2.0*B)*(-2.0*A-2.0*B) + ( 2.0*C+2.0*D)*(-2.0*C-2.0*D) ) * detB / 6.0);
+
+        matrix.add_global(elem.nodeF, elem.nodeA, ( (-2.0*A      )*(-    A-    B) + (-2.0*C      )*(-    C-    D)
+                                                  + (       2.0*B)*(-    A-    B) + (       2.0*D)*(-    C-    D)
+                                                  + (-2.0*A-2.0*B)*(     A+    B) + (-2.0*C-2.0*D)*(     C+    D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeF, elem.nodeB, ( (-2.0*A      )*(-    A      ) + (-2.0*C      )*(-    C      )
+                                                  + (       2.0*B)*(     A      ) + (       2.0*D)*(     C      )
+                                                  + (-2.0*A-2.0*B)*(     A      ) + (-2.0*C-2.0*D)*(     C      ) ) * detB / 6.0);
+        matrix.add_global(elem.nodeF, elem.nodeC, ( (-2.0*A      )*(           B) + (-2.0*C      )*(           D)
+                                                  + (       2.0*B)*(      -    B) + (       2.0*D)*(      -    D)
+                                                  + (-2.0*A-2.0*B)*(           B) + (-2.0*C-2.0*D)*(           D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeF, elem.nodeD, ( (-2.0*A      )*( 2.0*A      ) + (-2.0*C      )*( 2.0*C      )
+                                                  + (       2.0*B)*(      -2.0*B) + (       2.0*D)*(      -2.0*D)
+                                                  + (-2.0*A-2.0*B)*(-2.0*A-2.0*B) + (-2.0*C-2.0*D)*(-2.0*C-2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeF, elem.nodeE, ( (-2.0*A      )*( 2.0*A      ) + (-2.0*C      )*( 2.0*C      )
+                                                  + (       2.0*B)*(       2.0*B) + (       2.0*D)*(       2.0*D)
+                                                  + (-2.0*A-2.0*B)*( 2.0*A+2.0*B) + (-2.0*C-2.0*D)*( 2.0*C+2.0*D) ) * detB / 6.0);
+        matrix.add_global(elem.nodeF, elem.nodeF, ( (-2.0*A      )*(-2.0*A      ) + (-2.0*C      )*(-2.0*C      )
+                                                  + (       2.0*B)*(       2.0*B) + (       2.0*D)*(       2.0*D)
+                                                  + (-2.0*A-2.0*B)*(-2.0*A-2.0*B) + (-2.0*C-2.0*D)*(-2.0*C-2.0*D) ) * detB / 6.0);
+/*
         const float bbdd{b*b + d*d};
         const float abcd{a*b + c*d};
         const float aacc{a*a + c*c};
@@ -262,13 +447,13 @@ void assemble_id(CsrMatrixCpu& matrix, std::vector<Node>& nodes, std::vector<Tri
         matrix.add_global(elem.nodeF, elem.nodeD, ( 32.0*bbdd - 200.0*abcd +  32.0*aacc) / (6.0 * detB));
         matrix.add_global(elem.nodeF, elem.nodeE, ( -8.0*bbdd +  40.0*abcd -  32.0*aacc) / (6.0 * detB));
         matrix.add_global(elem.nodeF, elem.nodeF, (  8.0*bbdd -  72.0*abcd + 200.0*aacc) / (6.0 * detB));
-
+*/
     }
 }
 
 void structure_id(CsrMatrixCpu& matrix, std::vector<TriangleQ2>& elements)
 {
-    const size_t max_rowlength{30};
+    const size_t max_rowlength{40};
 
     size_t* num_nonzeros = new size_t[matrix._numrows_local];
     for (size_t i{0}; i < matrix._numrows_local; ++i)

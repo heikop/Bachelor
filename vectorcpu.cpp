@@ -67,7 +67,7 @@ void VectorCpu::copy(const VectorCpu& other)
 {
     assert(_size_global == other._size_global);
     assert(_size_local == other._size_local);
-    assert(_firstentry_on_local = other._firstentry_on_local);
+    assert(_firstentry_on_local == other._firstentry_on_local);
     std::memcpy(_values, other._values, _size_local*sizeof(float));
 }
 
