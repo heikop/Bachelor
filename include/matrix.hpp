@@ -13,10 +13,10 @@ public:
 
     //void createStructure(const Triangle* const elements, const size_t num_elem);
 
-    void set_local(const size_t, const size_t, const float);
-    void add_local(const size_t, const size_t, const float);
-    void set_global(const size_t, const size_t, const float);
-    void add_global(const size_t, const size_t, const float);
+    void set_local(const size_t, const size_t, const double);
+    void add_local(const size_t, const size_t, const double);
+    void set_global(const size_t, const size_t, const double);
+    void add_global(const size_t, const size_t, const double);
 
     void multvec(const Vector&, Vector&) const;
 

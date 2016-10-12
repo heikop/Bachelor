@@ -1,7 +1,7 @@
 #include "include/vectorcpu.hpp"
 #include <cstring>
 
-VectorCpu::VectorCpu(const size_t size, const float value):
+VectorCpu::VectorCpu(const size_t size, const double value):
     _size_global(size)
 {
     _size_local = _size_global / __mpi_instance__.get_global_size();
@@ -13,7 +13,7 @@ VectorCpu::VectorCpu(const size_t size, const float value):
     else 
         _firstentry_on_local = _size_local * __mpi_instance__.get_global_rank() + _size_global % __mpi_instance__.get_global_size();
 
-    _values = new float[_size_local];
+    _values = new double[_size_local];
     for (size_t i{0}; i < _size_local; ++i) 
         _values[i] = value;
     //TODO error handling allocating
@@ -23,7 +23,7 @@ VectorCpu::VectorCpu(const VectorCpu& other):
     _size_global(other._size_global), _size_local(other._size_local),
     _firstentry_on_local(other._firstentry_on_local)
 {
-    _values = new float[_size_local];
+    _values = new double[_size_local];
     for (size_t i(0); i < _size_local; ++i)
         _values[i] = other._values[i];
 }
@@ -47,7 +47,7 @@ VectorCpu VectorCpu::operator=(const VectorCpu& other)
     _size_global = other._size_global;
     _size_local = other._size_local;
     _firstentry_on_local = other._firstentry_on_local;
-    _values = new float[_size_local];
+    _values = new double[_size_local];
     for (size_t i(0); i < _size_local; ++i)
         _values[i] = other._values[i];
     return *this;
@@ -68,10 +68,10 @@ void VectorCpu::copy(const VectorCpu& other)
     assert(_size_global == other._size_global);
     assert(_size_local == other._size_local);
     assert(_firstentry_on_local == other._firstentry_on_local);
-    std::memcpy(_values, other._values, _size_local*sizeof(float));
+    std::memcpy(_values, other._values, _size_local*sizeof(double));
 }
 
-void VectorCpu::copyscal(const float scal, const VectorCpu& other)
+void VectorCpu::copyscal(const double scal, const VectorCpu& other)
 {
     assert(_size_global == other._size_global);
     assert(_size_local == other._size_local);
@@ -80,28 +80,28 @@ void VectorCpu::copyscal(const float scal, const VectorCpu& other)
         for (size_t i{0}; i < _size_local; ++i)
             _values[i] = 0.0;
     else if (scal == 1.0)
-        std::memcpy(_values, other._values, _size_local*sizeof(float));
+        std::memcpy(_values, other._values, _size_local*sizeof(double));
     else
         for (size_t i{0}; i < _size_local; ++i)
             _values[i] = scal * other._values[i];
 }
 
-void VectorCpu::set_local(const size_t pos, const float val)
+void VectorCpu::set_local(const size_t pos, const double val)
 {
     assert(pos < _size_local);
     _values[pos] = val;
 }
 
-void VectorCpu::add_local(const size_t pos, const float val)
+void VectorCpu::add_local(const size_t pos, const double val)
 {
     assert(pos < _size_local);
     _values[pos] += val;
 }
 
-//void VectorCpu::set_global(const size_t, const float); //TODO later
-//void VectorCpu::add_global(const size_t, const float); //TODO later
+//void VectorCpu::set_global(const size_t, const double); //TODO later
+//void VectorCpu::add_global(const size_t, const double); //TODO later
 
-void VectorCpu::scal(const float scalar)
+void VectorCpu::scal(const double scalar)
 {
     if (scalar == 0.0)
         for (size_t i(0); i < _size_local; ++i)
@@ -111,22 +111,22 @@ void VectorCpu::scal(const float scalar)
             _values[i] *= scalar;
 }
 
-float VectorCpu::dot_vec(const VectorCpu& other) const
+double VectorCpu::dot_vec(const VectorCpu& other) const
 {
     assert(_size_global == other._size_global);
     assert(_size_local == other._size_local);
     assert(_firstentry_on_local == other._firstentry_on_local);
 
-    float res_local(0.0);
+    double res_local(0.0);
     for (size_t i(0); i < _size_local; ++i)
         res_local += _values[i] * other._values[i];
 
-    float res_global(0.0);
-    MPICALL(MPI::COMM_WORLD.Allreduce(&res_local, &res_global, 1, MPI_FLOAT, MPI_SUM);)
+    double res_global(0.0);
+    MPICALL(MPI::COMM_WORLD.Allreduce(&res_local, &res_global, 1, MPI_DOUBLE, MPI_SUM);)
     return res_global;
 }
 
-void VectorCpu::axpy(const float a, const VectorCpu& x)
+void VectorCpu::axpy(const double a, const VectorCpu& x)
 {
     assert(_size_global == x._size_global);
     assert(_size_local == x._size_local);
@@ -140,7 +140,7 @@ void VectorCpu::axpy(const float a, const VectorCpu& x)
             _values[i] += a * x._values[i];
 }
 
-void VectorCpu::axpby(const float a, const VectorCpu& x, const float b)
+void VectorCpu::axpby(const double a, const VectorCpu& x, const double b)
 {
     assert(_size_global == x._size_global);
     assert(_size_local == x._size_local);
@@ -160,14 +160,14 @@ void VectorCpu::axpby(const float a, const VectorCpu& x, const float b)
             _values[i] = b*_values[i] + a*x._values[i];
 }
 
-float VectorCpu::l2norm2() const
+double VectorCpu::l2norm2() const
 {
-    float res_local{0.0};
+    double res_local{0.0};
     for (size_t i{0}; i < _size_local; ++i)
         res_local += _values[i] * _values[i];
 
-    float res_global(0.0);
-    MPICALL(MPI::COMM_WORLD.Allreduce(&res_local, &res_global, 1, MPI_FLOAT, MPI_SUM);)
+    double res_global(0.0);
+    MPICALL(MPI::COMM_WORLD.Allreduce(&res_local, &res_global, 1, MPI_DOUBLE, MPI_SUM);)
     return res_global;
 }
 

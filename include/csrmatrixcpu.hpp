@@ -22,12 +22,12 @@ public:
 
     void createStructure(const Triangle* const elements, const size_t num_elem);
 
-    float get_local(const size_t, const size_t) const;
-    void set_local(const size_t, const size_t, const float);
-    void add_local(const size_t, const size_t, const float);
-    float get_global(const size_t, const size_t) const;
-    void set_global(const size_t, const size_t, const float);
-    void add_global(const size_t, const size_t, const float);
+    double get_local(const size_t, const size_t) const;
+    void set_local(const size_t, const size_t, const double);
+    void add_local(const size_t, const size_t, const double);
+    double get_global(const size_t, const size_t) const;
+    void set_global(const size_t, const size_t, const double);
+    void add_global(const size_t, const size_t, const double);
 
     void multvec(const VectorCpu&, VectorCpu&) const;
 
@@ -39,10 +39,10 @@ public:
     size_t _firstrow_on_local;
     //size_t* _rowptr_global;
     //size_t* _colind_global;
-    //float* _values_global;
+    //double* _values_global;
     size_t* _rowptr;
     size_t* _colind;
-    float* _values;
+    double* _values;
 };
 
 #endif

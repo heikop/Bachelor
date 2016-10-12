@@ -15,7 +15,7 @@ template<typename mtype, typename vtype>
 void CgSolver<mtype, vtype>::solve(vtype& res)
 {
 //*
-    float tol{1.0e-5}; // TODO local is not good...
+    double tol{1.0e-5}; // TODO local is not good...
     size_t maxit{200000}; // the same...
 
     vtype residual(_rhs._size_global);
@@ -24,10 +24,10 @@ void CgSolver<mtype, vtype>::solve(vtype& res)
 
     vtype r_hat(residual);
 
-    float rho{1.0};
-    float alpha{1.0};
-    float omega{1.0};
-    float beta{0.0};
+    double rho{1.0};
+    double alpha{1.0};
+    double omega{1.0};
+    double beta{0.0};
 
     vtype v(_rhs._size_global, 0.0);
     vtype p(_rhs._size_global, 0.0);
@@ -59,7 +59,7 @@ std::cout << "stopped with an residual of " << std::sqrt(residual.l2norm2()) << 
 //*/
 /*
     assert(res._size_global == _matrix._numcols_global);
-    float tol{1.0e-8}; // TODO local is not good...
+    double tol{1.0e-8}; // TODO local is not good...
     //size_t maxit{2000}; // the same...
     size_t maxit{200000}; // the same...
     //size_t maxit{24}; // the same...
@@ -69,8 +69,8 @@ std::cout << "stopped with an residual of " << std::sqrt(residual.l2norm2()) << 
     residual.axpby(1.0, _rhs, -1.0);
     vtype direction(residual);
     vtype mat_mult_dir(_rhs._size_global);
-    float alpha{residual.l2norm2()};
-    float beta{0.0};
+    double alpha{residual.l2norm2()};
+    double beta{0.0};
     for (size_t it{0}; alpha > tol && it < maxit; ++it)
     {
 std::cout << "after " << it << " iteratons" << ": " << alpha << std::endl;

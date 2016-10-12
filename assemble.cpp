@@ -76,19 +76,19 @@ void assemble_full(CsrMatrixCpu& matrix, std::vector<FullTriangleQ2>& elements)
     {
         // B = [a b]
         //     [c d]
-        //const float a{elem.nodeB.x - elem.nodeA.x};
-        //const float c{elem.nodeB.y - elem.nodeA.y};
-        //const float b{elem.nodeC.x - elem.nodeA.x};
-        //const float d{elem.nodeC.y - elem.nodeA.y};
-        const float a{elem.nodeB.x - elem.nodeA.x};
-        const float c{elem.nodeB.y - elem.nodeA.y};
-        const float b{elem.nodeC.x - elem.nodeA.x};
-        const float d{elem.nodeC.y - elem.nodeA.y};
-        const float detB{std::abs(a*d - b*c)};
+        //const double a{elem.nodeB.x - elem.nodeA.x};
+        //const double c{elem.nodeB.y - elem.nodeA.y};
+        //const double b{elem.nodeC.x - elem.nodeA.x};
+        //const double d{elem.nodeC.y - elem.nodeA.y};
+        const double a{elem.nodeB.x - elem.nodeA.x};
+        const double c{elem.nodeB.y - elem.nodeA.y};
+        const double b{elem.nodeC.x - elem.nodeA.x};
+        const double d{elem.nodeC.y - elem.nodeA.y};
+        const double detB{std::abs(a*d - b*c)};
 
-        const float bbdd{b*b + d*d};
-        const float abcd{a*b + c*d};
-        const float aacc{a*a + c*c};
+        const double bbdd{b*b + d*d};
+        const double abcd{a*b + c*d};
+        const double aacc{a*a + c*c};
 
         matrix.add_global(elem.nodeA.ID, elem.nodeA.ID, (  3.0*bbdd -   6.0*abcd +   3.0*aacc) / (6.0 * detB));
         matrix.add_global(elem.nodeA.ID, elem.nodeB.ID, (      bbdd -       abcd             ) / (6.0 * detB));
@@ -196,7 +196,7 @@ void structure_full(CsrMatrixCpu& matrix, std::vector<FullTriangleQ2>& elements)
     delete[] matrix._colind;
     delete[] matrix._values;
     matrix._colind = new size_t[num_values];
-    matrix._values = new float[num_values];
+    matrix._values = new double[num_values];
 
     size_t current_pos{0};
     for (size_t row{0}; row < matrix._numrows_local; ++row)
@@ -277,16 +277,76 @@ void assemble_id(CsrMatrixCpu& matrix, std::vector<Node>& nodes, std::vector<Tri
     {
         // B = [a b]
         //     [c d]
-        const float a{nodes[elem.nodeB].x - nodes[elem.nodeA].x};
-        const float c{nodes[elem.nodeB].y - nodes[elem.nodeA].y};
-        const float b{nodes[elem.nodeC].x - nodes[elem.nodeA].x};
-        const float d{nodes[elem.nodeC].y - nodes[elem.nodeA].y};
-        const float detB{std::abs(a*d - b*c)};
+        const double a{nodes[elem.nodeB].x - nodes[elem.nodeA].x};
+        const double c{nodes[elem.nodeB].y - nodes[elem.nodeA].y};
+        const double b{nodes[elem.nodeC].x - nodes[elem.nodeA].x};
+        const double d{nodes[elem.nodeC].y - nodes[elem.nodeA].y};
+        const double detB{std::abs(a*d - b*c)};
 
-        const float A{ d/detB};
-        const float B{-c/detB};
-        const float C{-b/detB};
-        const float D{ a/detB};
+        //const double A{ d/detB};
+        //const double B{-c/detB};
+        //const double C{-b/detB};
+        //const double D{ a/detB};
+        //const double bbdd{B*B + D*D};
+        //const double abcd{A*B + C*D};
+        //const double aacc{A*A + C*C};
+        const double bbdd{ c*c + a*a};
+        const double abcd{-c*d - a*b};
+        const double aacc{ d*d + b*b};
+
+        matrix.add_global(elem.nodeA, elem.nodeA, ( 3.0*aacc + 6.0*abcd + 3.0*bbdd ) / detB / 6.0);
+        matrix.add_global(elem.nodeA, elem.nodeB, (     aacc +     abcd            ) / detB / 6.0);
+        matrix.add_global(elem.nodeA, elem.nodeC, (                abcd +     bbdd ) / detB / 6.0);
+        matrix.add_global(elem.nodeA, elem.nodeD, (-4.0*aacc - 4.0*abcd            ) / detB / 6.0);
+        //trix.add_global(elem.nodeA, elem.nodeE, (                                ) / detB / 6.0);
+        matrix.add_global(elem.nodeA, elem.nodeF, (          - 4.0*abcd - 4.0*bbdd ) / detB / 6.0);
+
+        matrix.add_global(elem.nodeB, elem.nodeA, (     aacc +     abcd            ) / detB / 6.0);
+        matrix.add_global(elem.nodeB, elem.nodeB, ( 3.0*aacc                       ) / detB / 6.0);
+        matrix.add_global(elem.nodeB, elem.nodeC, (          -     abcd            ) / detB / 6.0);
+        matrix.add_global(elem.nodeB, elem.nodeD, (-4.0*aacc - 4.0*abcd            ) / detB / 6.0);
+        matrix.add_global(elem.nodeB, elem.nodeE, (            4.0*abcd            ) / detB / 6.0);
+        //trix.add_global(elem.nodeB, elem.nodeF, (                                ) / detB / 6.0);
+
+        matrix.add_global(elem.nodeC, elem.nodeA, (                abcd +     bbdd ) / detB / 6.0);
+        matrix.add_global(elem.nodeC, elem.nodeB, (          -     abcd            ) / detB / 6.0);
+        matrix.add_global(elem.nodeC, elem.nodeC, (                       3.0*bbdd ) / detB / 6.0);
+        //trix.add_global(elem.nodeC, elem.nodeD, (                                ) / detB / 6.0);
+        matrix.add_global(elem.nodeC, elem.nodeE, (            4.0*abcd            ) / detB / 6.0);
+        matrix.add_global(elem.nodeC, elem.nodeF, (          - 4.0*abcd - 4.0*bbdd ) / detB / 6.0);
+
+        matrix.add_global(elem.nodeD, elem.nodeA, (-4.0*aacc - 4.0*abcd            ) / detB / 6.0);
+        matrix.add_global(elem.nodeD, elem.nodeB, (-4.0*aacc - 4.0*abcd            ) / detB / 6.0);
+        //trix.add_global(elem.nodeD, elem.nodeC, (                                ) / detB / 6.0);
+        matrix.add_global(elem.nodeD, elem.nodeD, ( 8.0*aacc + 8.0*abcd + 8.0*bbdd ) / detB / 6.0);
+        matrix.add_global(elem.nodeD, elem.nodeE, (          - 8.0*abcd - 8.0*bbdd ) / detB / 6.0);
+        matrix.add_global(elem.nodeD, elem.nodeF, (            8.0*abcd            ) / detB / 6.0);
+
+        //trix.add_global(elem.nodeE, elem.nodeA, (                                ) / detB / 6.0);
+        matrix.add_global(elem.nodeE, elem.nodeB, (            4.0*abcd            ) / detB / 6.0);
+        matrix.add_global(elem.nodeE, elem.nodeC, (            4.0*abcd            ) / detB / 6.0);
+        matrix.add_global(elem.nodeE, elem.nodeD, (          - 8.0*abcd - 8.0*bbdd ) / detB / 6.0);
+        matrix.add_global(elem.nodeE, elem.nodeE, ( 8.0*aacc + 8.0*abcd + 8.0*bbdd ) / detB / 6.0);
+        matrix.add_global(elem.nodeE, elem.nodeF, (-8.0*aacc - 8.0*abcd            ) / detB / 6.0);
+
+        matrix.add_global(elem.nodeF, elem.nodeA, (          - 4.0*abcd - 4.0*bbdd ) / detB / 6.0);
+        //trix.add_global(elem.nodeF, elem.nodeB, (                                ) / detB / 6.0);
+        matrix.add_global(elem.nodeF, elem.nodeC, (          - 4.0*abcd - 4.0*bbdd ) / detB / 6.0);
+        matrix.add_global(elem.nodeF, elem.nodeD, (            8.0*abcd            ) / detB / 6.0);
+        matrix.add_global(elem.nodeF, elem.nodeE, (-8.0*aacc - 8.0*abcd            ) / detB / 6.0);
+        matrix.add_global(elem.nodeF, elem.nodeF, ( 8.0*aacc + 8.0*abcd + 8.0*bbdd ) / detB / 6.0);
+
+        //matrix.add_global(elem.nodeA, elem.nodeA, ( 3.0*A*A + 6.0*A*B + 3.0*B*B
+        //                                          + 3.0*C*C + 6.0*C*D + 3.0*D*D ) * detB / 6.0);
+        //matrix.add_global(elem.nodeA, elem.nodeA, ( A*A + 2.0*A*B + B*B
+        //                                          + C*C + 2.0*C*D + D*D ) * detB / 2.0);
+        //matrix.add_global(elem.nodeA, elem.nodeA, ( (A+B)*(A+B)
+        //                                          + (C+D)*(C+D) ) * detB / 2.0);
+/*
+        const double A{ d/detB};
+        const double B{-c/detB};
+        const double C{-b/detB};
+        const double D{ a/detB};
 
         matrix.add_global(elem.nodeA, elem.nodeA, ( (-    A-    B)*(-    A-    B) + (-    C-    D)*(-    C-    D)
                                                   + (-    A-    B)*(-    A-    B) + (-    C-    D)*(-    C-    D)
@@ -401,52 +461,6 @@ void assemble_id(CsrMatrixCpu& matrix, std::vector<Node>& nodes, std::vector<Tri
         matrix.add_global(elem.nodeF, elem.nodeF, ( (-2.0*A      )*(-2.0*A      ) + (-2.0*C      )*(-2.0*C      )
                                                   + (       2.0*B)*(       2.0*B) + (       2.0*D)*(       2.0*D)
                                                   + (-2.0*A-2.0*B)*(-2.0*A-2.0*B) + (-2.0*C-2.0*D)*(-2.0*C-2.0*D) ) * detB / 6.0);
-/*
-        const float bbdd{b*b + d*d};
-        const float abcd{a*b + c*d};
-        const float aacc{a*a + c*c};
-
-        matrix.add_global(elem.nodeA, elem.nodeA, (  3.0*bbdd -   6.0*abcd +   3.0*aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeA, elem.nodeB, (      bbdd -       abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeA, elem.nodeC, (           -       abcd +       aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeA, elem.nodeD, (  4.0*bbdd -   4.0*abcd             ) / (6.0 * detB));
-        //trix.add_global(elem.nodeA, elem.nodeE, (                                    ) / (6.0 * detB));
-        matrix.add_global(elem.nodeA, elem.nodeF, (           -   4.0*abcd +   4.0*aacc) / (6.0 * detB));
-
-        matrix.add_global(elem.nodeB, elem.nodeA, (  3.0*bbdd -   6.0*abcd +   3.0*aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeB, elem.nodeB, (  3.0*bbdd                          ) / (6.0 * detB));
-        matrix.add_global(elem.nodeB, elem.nodeC, (                   abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeB, elem.nodeD, (-12.0*bbdd +   4.0*abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeB, elem.nodeE, (           -   4.0*abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeB, elem.nodeF, (               8.0*abcd             ) / (6.0 * detB));
-
-        matrix.add_global(elem.nodeC, elem.nodeA, (           -       abcd +       aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeC, elem.nodeB, (                   abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeC, elem.nodeC, (                            3.0*aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeC, elem.nodeD, (               8.0*abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeC, elem.nodeE, (           -   4.0*abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeC, elem.nodeF, (               4.0*abcd -  12.0*aacc) / (6.0 * detB));
-
-        matrix.add_global(elem.nodeD, elem.nodeA, (  4.0*bbdd -   4.0*abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeD, elem.nodeB, (-12.0*bbdd +   4.0*abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeD, elem.nodeC, (               8.0*abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeD, elem.nodeD, (200.0*bbdd -  72.0*abcd +   8.0*aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeD, elem.nodeE, (-32.0*bbdd +  40.0*abcd -   8.0*aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeD, elem.nodeF, ( 32.0*bbdd - 200.0*abcd +  32.0*aacc) / (6.0 * detB));
-
-        //trix.add_global(elem.nodeE, elem.nodeA, (                                    ) / (6.0 * detB));
-        matrix.add_global(elem.nodeE, elem.nodeB, (           -   4.0*abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeE, elem.nodeC, (           -   4.0*abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeE, elem.nodeD, (-32.0*bbdd +  40.0*abcd -   8.0*aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeE, elem.nodeE, (  8.0*bbdd -   8.0*abcd +   8.0*aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeE, elem.nodeF, ( -8.0*bbdd +  40.0*abcd -  32.0*aacc) / (6.0 * detB));
-
-        matrix.add_global(elem.nodeF, elem.nodeA, (           -   4.0*abcd +   4.0*aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeF, elem.nodeB, (               8.0*abcd             ) / (6.0 * detB));
-        matrix.add_global(elem.nodeF, elem.nodeC, (               4.0*abcd -  12.0*aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeF, elem.nodeD, ( 32.0*bbdd - 200.0*abcd +  32.0*aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeF, elem.nodeE, ( -8.0*bbdd +  40.0*abcd -  32.0*aacc) / (6.0 * detB));
-        matrix.add_global(elem.nodeF, elem.nodeF, (  8.0*bbdd -  72.0*abcd + 200.0*aacc) / (6.0 * detB));
 */
     }
 }
@@ -512,7 +526,7 @@ void structure_id(CsrMatrixCpu& matrix, std::vector<TriangleQ2>& elements)
     delete[] matrix._colind;
     delete[] matrix._values;
     matrix._colind = new size_t[num_values];
-    matrix._values = new float[num_values];
+    matrix._values = new double[num_values];
 
     size_t current_pos{0};
     for (size_t row{0}; row < matrix._numrows_local; ++row)

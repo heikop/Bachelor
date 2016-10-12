@@ -21,7 +21,7 @@ int main()
     size_t numnodes;
     size_t num_edgenodes{0};
 
-    std::string filename{"../data/square_evenfiner_q2.msh"};
+    std::string filename{"../data/square_fine_q2.msh"};
 
     mesh_q2_id(filename, nodes, elements, num_edgenodes);
     std::cout << nodes.size() << std::endl;
@@ -42,11 +42,11 @@ int main()
     VectorCpu rhs(numnodes, 0.0);
     for (const auto& e : elements)
     {
-        const float a{nodes[e.nodeB].x - nodes[e.nodeA].x};
-        const float c{nodes[e.nodeB].y - nodes[e.nodeA].y};
-        const float b{nodes[e.nodeC].x - nodes[e.nodeA].x};
-        const float d{nodes[e.nodeC].y - nodes[e.nodeA].y};
-        const float detB{std::abs(a*d - b*c)};
+        const double a{nodes[e.nodeB].x - nodes[e.nodeA].x};
+        const double c{nodes[e.nodeB].y - nodes[e.nodeA].y};
+        const double b{nodes[e.nodeC].x - nodes[e.nodeA].x};
+        const double d{nodes[e.nodeC].y - nodes[e.nodeA].y};
+        const double detB{std::abs(a*d - b*c)};
         rhs.add_local(e.nodeA, (-27.0/96.0 * (1.0 - 1.0/3.0 - 1.0/3.0)*(1.0 - 2.0/3.0 - 2.0/3.0)
                                + 25.0/96.0 * (1.0 - 1.0/5.0 - 3.0/5.0)*(1.0 - 2.0/5.0 - 6.0/5.0)
                                + 25.0/96.0 * (1.0 - 1.0/5.0 - 1.0/5.0)*(1.0 - 2.0/5.0 - 2.0/5.0)

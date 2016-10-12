@@ -47,7 +47,7 @@ CsrMatrixCpu::CsrMatrixCpu(const CsrMatrixCpu& other):
     for (size_t i(0); i <= _numrows_local; ++i)
         _rowptr[i] = other._rowptr[i];
     _colind = new size_t[_rowptr[_numrows_local]];
-    _values = new float[_rowptr[_numrows_local]];
+    _values = new double[_rowptr[_numrows_local]];
     for (size_t i(0); i < _rowptr[_numrows_local]; ++i)
     {
         _colind[i] = other._colind[i];
@@ -120,7 +120,7 @@ void CsrMatrixCpu::createStructure(const Triangle* const elements, const size_t 
     delete[] _colind;
     delete[] _values;
     _colind = new size_t[num_values];
-    _values = new float[num_values];
+    _values = new double[num_values];
 
     size_t current_pos{0};
     for (size_t row{0}; row < _numrows_local; ++row)
@@ -133,7 +133,7 @@ void CsrMatrixCpu::createStructure(const Triangle* const elements, const size_t 
     delete[] colind;
 }
 
-float CsrMatrixCpu::get_local(const size_t row, const size_t col) const
+double CsrMatrixCpu::get_local(const size_t row, const size_t col) const
 {
     assert(row < _numrows_local && col < _numcols_local);
     size_t pos_to_get(_rowptr[row]);
@@ -142,7 +142,7 @@ float CsrMatrixCpu::get_local(const size_t row, const size_t col) const
     return (_colind[pos_to_get] == col ? _values[pos_to_get] : 0.0);
 }
 
-void CsrMatrixCpu::set_local(const size_t row, const size_t col, const float val)
+void CsrMatrixCpu::set_local(const size_t row, const size_t col, const double val)
 {
     assert(row < _numrows_local && col < _numcols_local);
     size_t pos_to_insert(_rowptr[row]);
@@ -152,7 +152,7 @@ void CsrMatrixCpu::set_local(const size_t row, const size_t col, const float val
     _values[pos_to_insert] = val;
 }
 
-void CsrMatrixCpu::add_local(const size_t row, const size_t col, const float val)
+void CsrMatrixCpu::add_local(const size_t row, const size_t col, const double val)
 {
     assert(row < _numrows_local && col < _numcols_local);
     size_t pos_to_insert(_rowptr[row]);
@@ -162,19 +162,19 @@ void CsrMatrixCpu::add_local(const size_t row, const size_t col, const float val
     _values[pos_to_insert] += val;
 }
 
-float CsrMatrixCpu::get_global(const size_t row, const size_t col) const
+double CsrMatrixCpu::get_global(const size_t row, const size_t col) const
 {
     assert(row < _numrows_global && col < _numcols_global);
-    float val{0.0};
+    double val{0.0};
     if (row >= _firstrow_on_local && row < _firstrow_on_local + _numrows_local)
         val = get_local(row - _firstrow_on_local, col);
-    float val_global{0.0};
-    MPICALL(MPI::COMM_WORLD.Allreduce(&val, &val_global, 1, MPI_FLOAT, MPI_SUM);) //TODO should work with copying and not adding it up!
+    double val_global{0.0};
+    MPICALL(MPI::COMM_WORLD.Allreduce(&val, &val_global, 1, MPI_DOUBLE, MPI_SUM);) //TODO should work with copying and not adding it up!
     //MPICALL(MPI::COMM_WORLD.Bcast(&val, 1, MPI_DOUBLE, __mpi_instance__.get_global_rank());) // somehow like this, I think
     return val_global;
 }
 
-void CsrMatrixCpu::set_global(const size_t row, const size_t col, const float val)
+void CsrMatrixCpu::set_global(const size_t row, const size_t col, const double val)
 {
     assert(row < _numrows_global && col < _numcols_global);
     if (row >= _firstrow_on_local && row < _firstrow_on_local + _numrows_local)
@@ -182,7 +182,7 @@ void CsrMatrixCpu::set_global(const size_t row, const size_t col, const float va
     MPICALL(MPI::COMM_WORLD.Barrier();)
 }
 
-void CsrMatrixCpu::add_global(const size_t row, const size_t col, const float val)
+void CsrMatrixCpu::add_global(const size_t row, const size_t col, const double val)
 {
     assert(row < _numrows_global && col < _numcols_global);
     if (row >= _firstrow_on_local && row < _firstrow_on_local + _numrows_local)
