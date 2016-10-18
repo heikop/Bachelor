@@ -5,7 +5,7 @@
 #include "include/global.hpp"
 
 #include "include/readmesh.hpp"
-#include "include/assemble.hpp"
+#include "include/assembleq2.hpp"
 
 #include "include/csrmatrixcpu.hpp"
 #include "include/vectorcpu.hpp"
@@ -14,6 +14,7 @@
 
 int main()
 {
+    /*
     clock_t time[2];
     std::cout << ">- CPU: MESH FORMAT, Q2 -<" << std::endl;
     std::vector<Node>       nodes;
@@ -30,7 +31,7 @@ int main()
 
     std::cout << "assemble" << std::flush;
     time[0] = clock();
-    CsrMatrixCpu mat(numnodes);
+    CsrMatrixCpu<double> mat(numnodes);
     structure_id(mat, elements);
     time[0] -= clock();
     time[1] = clock();
@@ -47,36 +48,36 @@ int main()
         const double b{nodes[e.nodeC].x - nodes[e.nodeA].x};
         const double d{nodes[e.nodeC].y - nodes[e.nodeA].y};
         const double detB{std::abs(a*d - b*c)};
-        rhs.add_local(e.nodeA, (-27.0/96.0 * (1.0 - 1.0/3.0 - 1.0/3.0)*(1.0 - 2.0/3.0 - 2.0/3.0)
-                               + 25.0/96.0 * (1.0 - 1.0/5.0 - 3.0/5.0)*(1.0 - 2.0/5.0 - 6.0/5.0)
-                               + 25.0/96.0 * (1.0 - 1.0/5.0 - 1.0/5.0)*(1.0 - 2.0/5.0 - 2.0/5.0)
-                               + 25.0/96.0 * (1.0 - 3.0/5.0 - 1.0/5.0)*(1.0 - 6.0/5.0 - 2.0/5.0) )
-                               * detB * (2.0) * (nodes[e.nodeA].x * (1.0 - nodes[e.nodeA].x) + nodes[e.nodeA].y * (1.0 - nodes[e.nodeA].y) ) );
-        rhs.add_local(e.nodeB, (-27.0/96.0 * 1.0/3.0 * (2.0*1.0/3.0 - 1.0)
-                               + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0)
-                               + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0)
-                               + 25.0/96.0 * 3.0/5.0 * (2.0*3.0/5.0 - 1.0) )
-                               * detB * (2.0) * (nodes[e.nodeB].x * (1.0 - nodes[e.nodeB].x) + nodes[e.nodeB].y * (1.0 - nodes[e.nodeB].y) ) );
-        rhs.add_local(e.nodeC, (-27.0/96.0 * 1.0/3.0 * (2.0*1.0/3.0 - 1.0)
-                               + 25.0/96.0 * 3.0/5.0 * (2.0*3.0/5.0 - 1.0)
-                               + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0)
-                               + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0) )
-                               * detB * (2.0) * (nodes[e.nodeC].x * (1.0 - nodes[e.nodeC].x) + nodes[e.nodeC].y * (1.0 - nodes[e.nodeC].y) ) );
-        rhs.add_local(e.nodeD, (-27.0/96.0 * 4.0 * 1.0/3.0 *(1.0 - 1.0/3.0 - 1.0/3.0)
-                               + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 1.0/5.0 - 3.0/5.0)
-                               + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 1.0/5.0 - 1.0/5.0)
-                               + 25.0/96.0 * 4.0 * 3.0/5.0 *(1.0 - 3.0/5.0 - 1.0/5.0) )
-                               * detB * (2.0) * (nodes[e.nodeD].x * (1.0 - nodes[e.nodeD].x) + nodes[e.nodeD].y * (1.0 - nodes[e.nodeD].y) ) );
-        rhs.add_local(e.nodeE, (-27.0/96.0 * 4.0 * 1.0/3.0 * 1.0/3.0
-                               + 25.0/96.0 * 4.0 * 1.0/5.0 * 3.0/5.0
-                               + 25.0/96.0 * 4.0 * 1.0/5.0 * 1.0/5.0
-                               + 25.0/96.0 * 4.0 * 3.0/5.0 * 1.0/5.0 )
-                               * detB * (2.0) * (nodes[e.nodeE].x * (1.0 - nodes[e.nodeE].x) + nodes[e.nodeE].y * (1.0 - nodes[e.nodeE].y) ) );
-        rhs.add_local(e.nodeF, (-27.0/96.0 * 4.0 * 1.0/3.0 *(1.0 - 1.0/3.0 - 1.0/3.0)
-                               + 25.0/96.0 * 4.0 * 3.0/5.0 *(1.0 - 1.0/5.0 - 3.0/5.0)
-                               + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 1.0/5.0 - 1.0/5.0)
-                               + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 3.0/5.0 - 1.0/5.0) )
-                               * detB * (2.0) * (nodes[e.nodeF].x * (1.0 - nodes[e.nodeF].x) + nodes[e.nodeF].y * (1.0 - nodes[e.nodeF].y) ) );
+        rhs.add(e.nodeA, (-27.0/96.0 * (1.0 - 1.0/3.0 - 1.0/3.0)*(1.0 - 2.0/3.0 - 2.0/3.0)
+                         + 25.0/96.0 * (1.0 - 1.0/5.0 - 3.0/5.0)*(1.0 - 2.0/5.0 - 6.0/5.0)
+                         + 25.0/96.0 * (1.0 - 1.0/5.0 - 1.0/5.0)*(1.0 - 2.0/5.0 - 2.0/5.0)
+                         + 25.0/96.0 * (1.0 - 3.0/5.0 - 1.0/5.0)*(1.0 - 6.0/5.0 - 2.0/5.0) )
+                         * detB * (2.0) * (nodes[e.nodeA].x * (1.0 - nodes[e.nodeA].x) + nodes[e.nodeA].y * (1.0 - nodes[e.nodeA].y) ) );
+        rhs.add(e.nodeB, (-27.0/96.0 * 1.0/3.0 * (2.0*1.0/3.0 - 1.0)
+                         + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0)
+                         + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0)
+                         + 25.0/96.0 * 3.0/5.0 * (2.0*3.0/5.0 - 1.0) )
+                         * detB * (2.0) * (nodes[e.nodeB].x * (1.0 - nodes[e.nodeB].x) + nodes[e.nodeB].y * (1.0 - nodes[e.nodeB].y) ) );
+        rhs.add(e.nodeC, (-27.0/96.0 * 1.0/3.0 * (2.0*1.0/3.0 - 1.0)
+                         + 25.0/96.0 * 3.0/5.0 * (2.0*3.0/5.0 - 1.0)
+                         + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0)
+                         + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0) )
+                         * detB * (2.0) * (nodes[e.nodeC].x * (1.0 - nodes[e.nodeC].x) + nodes[e.nodeC].y * (1.0 - nodes[e.nodeC].y) ) );
+        rhs.add(e.nodeD, (-27.0/96.0 * 4.0 * 1.0/3.0 *(1.0 - 1.0/3.0 - 1.0/3.0)
+                         + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 1.0/5.0 - 3.0/5.0)
+                         + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 1.0/5.0 - 1.0/5.0)
+                         + 25.0/96.0 * 4.0 * 3.0/5.0 *(1.0 - 3.0/5.0 - 1.0/5.0) )
+                         * detB * (2.0) * (nodes[e.nodeD].x * (1.0 - nodes[e.nodeD].x) + nodes[e.nodeD].y * (1.0 - nodes[e.nodeD].y) ) );
+        rhs.add(e.nodeE, (-27.0/96.0 * 4.0 * 1.0/3.0 * 1.0/3.0
+                         + 25.0/96.0 * 4.0 * 1.0/5.0 * 3.0/5.0
+                         + 25.0/96.0 * 4.0 * 1.0/5.0 * 1.0/5.0
+                         + 25.0/96.0 * 4.0 * 3.0/5.0 * 1.0/5.0 )
+                         * detB * (2.0) * (nodes[e.nodeE].x * (1.0 - nodes[e.nodeE].x) + nodes[e.nodeE].y * (1.0 - nodes[e.nodeE].y) ) );
+        rhs.add(e.nodeF, (-27.0/96.0 * 4.0 * 1.0/3.0 *(1.0 - 1.0/3.0 - 1.0/3.0)
+                         + 25.0/96.0 * 4.0 * 3.0/5.0 *(1.0 - 1.0/5.0 - 3.0/5.0)
+                         + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 1.0/5.0 - 1.0/5.0)
+                         + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 3.0/5.0 - 1.0/5.0) )
+                         * detB * (2.0) * (nodes[e.nodeF].x * (1.0 - nodes[e.nodeF].x) + nodes[e.nodeF].y * (1.0 - nodes[e.nodeF].y) ) );
     }
     // dirichlet boundary
     for (const auto& n : nodes)
@@ -85,13 +86,13 @@ int main()
         {
             for (size_t i{mat._rowptr[n.ID]}; i < mat._rowptr[n.ID + 1]; ++i)
                 mat._values[i] = 0.0f;
-            mat.set_local(n.ID, n.ID, 1.0f);
-            rhs.set_local(n.ID, 0.0f);
+            mat.set(n.ID, n.ID, 1.0f);
+            rhs.set(n.ID, 0.0f);
         }
     }
 
     // solve LGS
-    CgSolver<CsrMatrixCpu, VectorCpu> solver(mat, rhs);
+    CgSolver<CsrMatrixCpu<double>, VectorCpu> solver(mat, rhs);
     VectorCpu res(numnodes, 0.1);
     solver.solve(res);
 
@@ -120,6 +121,7 @@ int main()
     for (size_t i{0}; i < numnodes; ++i)
         output << (std::abs(res._values[i]) < 0.0001 ? 0 : res._values[i]) << std::endl;
     output.close();
+    */
 
     return 0;
 }

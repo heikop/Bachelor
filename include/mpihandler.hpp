@@ -1,3 +1,4 @@
+/*
 #ifndef __MPIHANDLER_HPP_
 #define __MPIHANDLER_HPP_
 
@@ -37,3 +38,4 @@ extern MpiHandler __mpi_instance__;
 #define MPISIZE __mpi_instance__.get_global_size()
 
 #endif//__MPIHANDLER_HPP_
+*/

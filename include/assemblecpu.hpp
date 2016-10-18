@@ -7,8 +7,8 @@
 #include "csrmatrixcpu.hpp"
 #include "global.hpp"
 
-void assemble_cpu_elem(CsrMatrixCpu& matrix, std::vector<FullTriangle>& elements, std::vector<size_t>& boundaryNodes);
-void assemble_cpu_nag_id(CsrMatrixCpu& matrix,
+void assemble_cpu_elem(CsrMatrixCpu<double>& matrix, std::vector<FullTriangle>& elements, std::vector<size_t>& boundaryNodes);
+void assemble_cpu_nag_id(CsrMatrixCpu<double>& matrix,
                          std::vector<size_t>& num_neighbours,
                          std::vector<size_t>& nag,
                          std::vector<size_t>& num_midpoints,

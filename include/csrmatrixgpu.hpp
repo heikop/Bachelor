@@ -20,7 +20,7 @@ public:
     CsrMatrixGpu operator=(const CsrMatrixGpu&);
 //    CsrMatrixGpu operator=(const CsrMatrixGpu&&);
 
-    void createStructure(const Triangle* const elements, const size_t num_elem);
+    void createStructure(const Triangle1* const elements, const size_t num_elem);
 
     float get_local(const size_t, const size_t) const;
     void set_local(const size_t, const size_t, const float);

@@ -20,10 +20,10 @@ public:
     void copy(const VectorCpu&);
     void copyscal(const double, const VectorCpu&);
 
-    void set_local(const size_t, const double);
-    void add_local(const size_t, const double);
-    void set_global(const size_t, const double);
-    void add_global(const size_t, const double);
+    void set(const size_t, const double);
+    void add(const size_t, const double);
+    //void set_global(const size_t, const double);
+    //void add_global(const size_t, const double);
 
     void scal(const double);
     void axpy(const double, const VectorCpu&);
@@ -32,11 +32,9 @@ public:
 
     double l2norm2() const;
 
-    void print_local_data(const size_t firstindex=0) const;
+    void print_data(const size_t firstindex=0) const;
 //private:
-    size_t _size_global;
-    size_t _size_local;
-    size_t _firstentry_on_local;
+    size_t _size;
     double* _values;
 };
 

@@ -8,7 +8,7 @@
 
 using namespace std;
 
-void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle>& elements, std::vector<FullTriangle>& fullElements, std::vector<size_t>& boundaryNodes)
+void readmesh(string filename, std::vector<Node>& nodes, std::vector<Triangle1>& elements, std::vector<FullTriangle>& fullElements, std::vector<size_t>& boundaryNodes)
 {
     ifstream fin(filename.c_str());
 

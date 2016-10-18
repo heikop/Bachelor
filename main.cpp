@@ -4,10 +4,11 @@
 #include "include/readmesh.hpp"
 #include "include/csrmatrixcpu.hpp"
 #include "include/vectorcpu.hpp"
-#include "include/assemble.hpp"
+#include "include/assembleq2.hpp"
 
 int main()
 {
+    /*
     clock_t time[4][11];
     std::cout << ">- CPU: MESH FORMAT, Q2 -<" << std::endl;
     std::vector<Node>       nodes_id;
@@ -27,7 +28,7 @@ int main()
     {
         std::cout << std::endl << "Full nodes" << std::flush;
         time[2][i] = clock();
-        CsrMatrixCpu mat_full(numnodes_full);
+        CsrMatrixCpu<double> mat_full(numnodes_full);
         structure_full(mat_full, elements_full);
         time[2][i] -= clock();
         time[3][i] = clock();
@@ -39,7 +40,7 @@ int main()
     {
         std::cout << std::endl << "IDs" << std::flush;
         time[0][i] = clock();
-        CsrMatrixCpu mat_id(numnodes_id);
+        CsrMatrixCpu<double> mat_id(numnodes_id);
         structure_id(mat_id, elements_id);
         time[0][i] -= clock();
         time[1][i] = clock();
@@ -73,5 +74,6 @@ int main()
 //        std::cout << " - checked" << std::endl;
 //    }
 
+*/
     return 0;
 }

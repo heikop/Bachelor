@@ -105,7 +105,7 @@ void CsrMatrixGpu::print_local_data(const size_t firstindex) const
     delete[] h_values;
 }
 
-void CsrMatrixGpu::createStructure(const Triangle* const elements, const size_t num_elem)
+void CsrMatrixGpu::createStructure(const Triangle1* const elements, const size_t num_elem)
 {
     const size_t max_rowlength(20);
 
