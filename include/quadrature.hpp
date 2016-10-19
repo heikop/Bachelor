@@ -8,17 +8,16 @@
 
 #include "elements.hpp"
 
-//TODO double to datatype
-template<typename elemtype>
+template<template<typename> class elemtype, typename datatype>
 class Quadrature
 {
 public:
-    Quadrature(const elemtype& element) :
+    Quadrature(const elemtype<datatype>& element) :
         _element{element} {}
-    double integrate(unsigned int order, unsigned int firstbf, unsigned int secondbf);
+    const datatype integrate(unsigned int order, unsigned int firstbf, unsigned int secondbf) const;
 
 private:
-    const elemtype& _element;
+    const elemtype<datatype>& _element;
 };
 
 #include "quadrature.tpp"

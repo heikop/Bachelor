@@ -24,9 +24,7 @@ int main()
     std::vector<TriangleQ2<double>> elements;
 
     std::string filename{"../data/square_fine_q2.msh"};
-    //std::string filename{"../data/square_veryrough_q2.msh"};
 
-    //mesh_q2_id(filename, nodes, elements, num_edgenodes);
     file_to_mesh(filename, vertices, elements);
     std::cout << vertices.size() << std::endl;
     std::cout << elements.size() << std::endl;

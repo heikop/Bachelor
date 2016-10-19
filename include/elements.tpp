@@ -3,7 +3,7 @@
 // ***** // ***** LineQ1 ***** // ***** //
 template<typename datatype>
 datatype LineQ1<datatype>::evaluate_ref(const unsigned int basis_function,
-                                        const datatype x)
+                                        const datatype x) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
     assert(x >= static_cast<datatype>(0) && x <= static_cast<datatype>(1));
@@ -16,7 +16,7 @@ datatype LineQ1<datatype>::evaluate_ref(const unsigned int basis_function,
 template<typename datatype>
 datatype LineQ1<datatype>::derivate_ref(const unsigned int basis_function,
                                         const unsigned int direction,
-                                        const datatype x)
+                                        const datatype x) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
     assert(x >= static_cast<datatype>(0) && x <= static_cast<datatype>(1));
@@ -29,7 +29,7 @@ datatype LineQ1<datatype>::derivate_ref(const unsigned int basis_function,
 // ***** // ***** LineQ2 ***** // ***** //
 template<typename datatype>
 datatype LineQ2<datatype>::evaluate_ref(const unsigned int basis_function,
-                                        const datatype x)
+                                        const datatype x) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
     assert(x >= static_cast<datatype>(0) && x <= static_cast<datatype>(1));
@@ -44,7 +44,7 @@ datatype LineQ2<datatype>::evaluate_ref(const unsigned int basis_function,
 template<typename datatype>
 datatype LineQ2<datatype>::derivate_ref(const unsigned int basis_function,
                                         const unsigned int direction,
-                                        const datatype x)
+                                        const datatype x) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
     assert(x >= static_cast<datatype>(0) && x <= static_cast<datatype>(1));
@@ -64,15 +64,20 @@ datatype LineQ2<datatype>::derivate_ref(const unsigned int basis_function,
 template<typename datatype>
 const std::array<std::array<datatype, 2>, 2> Triangle<datatype>::transformation_matrix() const
 {
-    return {_p1.x - _p0.x, _p2.x - _p0.x,
-            _p1.y - _p0.y, _p2.y - _p0.y};
+    //return {_p1.x - _p0.x, _p2.x - _p0.x,
+    //        _p1.y - _p0.y, _p2.y - _p0.y};
+    std::array<std::array<datatype, 2>, 2> res;
+    res[0][0] = _p1.x - _p0.x; res[0][1] = _p2.x - _p0.x;
+    res[1][0] = _p1.y - _p0.y; res[1][1] = _p2.y - _p0.y;
+    return res;
+    // TODO change back
 }
 
 // ***** // ***** TriangleQ1 ***** // ***** //
 template<typename datatype>
 datatype TriangleQ1<datatype>::evaluate_ref(const unsigned int basis_function,
                                             const datatype x,
-                                            const datatype y)
+                                            const datatype y) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
     assert(x >= static_cast<datatype>(0)
@@ -90,7 +95,7 @@ template<typename datatype>
 datatype TriangleQ1<datatype>::derivate_ref(const unsigned int basis_function,
                                             const unsigned int direction,
                                             const datatype x,
-                                            const datatype y)
+                                            const datatype y) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
     assert(direction == 0 || direction == 1);
@@ -108,7 +113,7 @@ datatype TriangleQ1<datatype>::derivate_ref(const unsigned int basis_function,
 template<typename datatype>
 std::array<datatype, 2> TriangleQ1<datatype>::gradient_ref(const unsigned int basis_function,
                                                            const datatype x,
-                                                           const datatype y)
+                                                           const datatype y) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
     assert(x >= static_cast<datatype>(0)
@@ -129,7 +134,7 @@ std::array<datatype, 2> TriangleQ1<datatype>::gradient_ref(const unsigned int ba
 template<typename datatype>
 datatype TriangleQ2<datatype>::evaluate_ref(const unsigned int basis_function,
                                             const datatype x,
-                                            const datatype y)
+                                            const datatype y) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
     assert(x >= static_cast<datatype>(0)
@@ -153,7 +158,7 @@ template<typename datatype>
 datatype TriangleQ2<datatype>::derivate_ref(const unsigned int basis_function,
                                             const unsigned int direction,
                                             const datatype x,
-                                            const datatype y)
+                                            const datatype y) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
     assert(direction == 0 || direction == 1);
@@ -169,10 +174,11 @@ datatype TriangleQ2<datatype>::derivate_ref(const unsigned int basis_function,
         return (direction == 0 ? static_cast<datatype>(0) :
                                  static_cast<datatype>(4) * y - static_cast<datatype>(1) );
     else if (basis_function == 3)
-        return (direction == 0 ? static_cast<datatype>(4) * (static_cast<datatype>(1) - static_cast<datatype>(2) * x - y):
+        return (direction == 0 ? static_cast<datatype>(4) * (static_cast<datatype>(1) - static_cast<datatype>(2) * x - y) :
                                  static_cast<datatype>(-4) * x );
     else if (basis_function == 4)
-        return static_cast<datatype>(4) * x * y;
+        return (direction == 0 ? static_cast<datatype>(4) * y :
+                                 static_cast<datatype>(4) * x);
     else //if (basis_function == 5)
         return (direction == 0 ? static_cast<datatype>(-4) * y :
                                  static_cast<datatype>(4) * (static_cast<datatype>(1) - x - static_cast<datatype>(2) * y) );
@@ -181,12 +187,13 @@ datatype TriangleQ2<datatype>::derivate_ref(const unsigned int basis_function,
 template<typename datatype>
 std::array<datatype, 2> TriangleQ2<datatype>::gradient_ref(const unsigned int basis_function,
                                                            const datatype x,
-                                                           const datatype y)
+                                                           const datatype y) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
     assert(x >= static_cast<datatype>(0)
         && y >= static_cast<datatype>(0)
         && x+y <= static_cast<datatype>(1));
+
     if (basis_function == 0)
         return {static_cast<datatype>(4) * (x + y) - static_cast<datatype>(3),
                 static_cast<datatype>(4) * (x + y) - static_cast<datatype>(3)};
@@ -200,14 +207,86 @@ std::array<datatype, 2> TriangleQ2<datatype>::gradient_ref(const unsigned int ba
         return {static_cast<datatype>(4) * (static_cast<datatype>(1) - static_cast<datatype>(2) * x - y),
                 static_cast<datatype>(-4) * x};
     else if (basis_function == 4)
-        return {static_cast<datatype>(4) * x * y,
-                static_cast<datatype>(4) * x * y};
+        return {static_cast<datatype>(4) * y,
+                static_cast<datatype>(4) * x};
     else //if (basis_function == 5)
         return {static_cast<datatype>(-4) * y,
                 static_cast<datatype>(4) * (static_cast<datatype>(1) - x - static_cast<datatype>(2) * y )};
 }
 
-// ***** // ***** RectangleQ1 ***** // ***** //
-// TODO
-// ***** // ***** RectangleQ2 ***** // ***** //
+// ***** // ***** Quadrilateral ***** // ***** //
+// TODO trafo
+
+// ***** // ***** QuadrilateralQ1 ***** // ***** //
+template<typename datatype>
+datatype QuadrilateralQ1<datatype>::evaluate_ref(const unsigned int basis_function,
+                                                 const datatype x,
+                                                 const datatype y) const
+{
+    assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
+    assert(x >= static_cast<datatype>(-1)
+        && y >= static_cast<datatype>(-1)
+        && x <= static_cast<datatype>( 1)
+        && y <= static_cast<datatype>( 1));
+    if (basis_function == 0)
+        return (static_cast<datatype>(1) - x) * (static_cast<datatype>(1) - y) / static_cast<datatype>(4);
+    else if (basis_function == 1)
+        return (static_cast<datatype>(1) + x) * (static_cast<datatype>(1) - y) / static_cast<datatype>(4);
+    else if (basis_function == 2)
+        return (static_cast<datatype>(1) + x) * (static_cast<datatype>(1) + y) / static_cast<datatype>(4);
+    else //if (basis_function == 3)
+        return (static_cast<datatype>(1) - x) * (static_cast<datatype>(1) + y) / static_cast<datatype>(4);
+}
+
+template<typename datatype>
+datatype QuadrilateralQ1<datatype>::derivate_ref(const unsigned int basis_function,
+                                                 const unsigned int direction,
+                                                 const datatype x,
+                                                 const datatype y) const
+{
+    assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
+    assert(direction == 0 || direction == 1);
+    assert(x >= static_cast<datatype>(-1)
+        && y >= static_cast<datatype>(-1)
+        && x <= static_cast<datatype>( 1)
+        && y <= static_cast<datatype>( 1));
+    if (basis_function == 0)
+        return (direction == 0 ? (static_cast<datatype>(1) - y) / static_cast<datatype>(-4) :
+                                 (static_cast<datatype>(1) - x) / static_cast<datatype>(-4) );
+    else if (basis_function == 1)
+        return (direction == 0 ? (static_cast<datatype>(1) - y) / static_cast<datatype>( 4) :
+                                 (static_cast<datatype>(1) + x) / static_cast<datatype>(-4) );
+    else if (basis_function == 2)
+        return (direction == 0 ? (static_cast<datatype>(1) + y) / static_cast<datatype>( 4) :
+                                 (static_cast<datatype>(1) + x) / static_cast<datatype>( 4) );
+    else //if (basis_function == 3)
+        return (direction == 0 ? (static_cast<datatype>(1) + y) / static_cast<datatype>(-4) :
+                                 (static_cast<datatype>(1) - x) / static_cast<datatype>( 4) );
+}
+
+template<typename datatype>
+std::array<datatype, 2> QuadrilateralQ1<datatype>::gradient_ref(const unsigned int basis_function,
+                                                                const datatype x,
+                                                                const datatype y) const
+{
+    assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
+    assert(x >= static_cast<datatype>(-1)
+        && y >= static_cast<datatype>(-1)
+        && x <= static_cast<datatype>( 1)
+        && y <= static_cast<datatype>( 1));
+    if (basis_function == 0)
+        return {(static_cast<datatype>(1) - y) / static_cast<datatype>(-4) ,
+                (static_cast<datatype>(1) - x) / static_cast<datatype>(-4) };
+    else if (basis_function == 1)
+        return {(static_cast<datatype>(1) - y) / static_cast<datatype>( 4) ,
+                (static_cast<datatype>(1) + x) / static_cast<datatype>(-4) };
+    else if (basis_function == 2)
+        return {(static_cast<datatype>(1) + y) / static_cast<datatype>( 4) ,
+                (static_cast<datatype>(1) + x) / static_cast<datatype>( 4) };
+    else //if (basis_function == 3)
+        return {(static_cast<datatype>(1) + y) / static_cast<datatype>(-4) ,
+                (static_cast<datatype>(1) - x) / static_cast<datatype>( 4) };
+}
+
+// ***** // ***** QuadrilateralQ2 ***** // ***** //
 // TODO
