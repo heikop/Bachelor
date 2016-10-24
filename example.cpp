@@ -3,6 +3,8 @@
 #include <vector>
 #include <ctime>
 #include <cmath>
+#include <typeinfo>
+#include <functional>
 
 #include "include/elements.hpp"
 #include "include/readfile.hpp"
@@ -16,72 +18,73 @@
 
 using namespace std;
 
-int main()
+template<typename datatype>
+void read_assemble_calc_post(std::string filename);
+
+int main(int argc, char* argv[])
 {
+    if (argc < 2)
+    {
+        std::cout << "no input file was given" << std::endl;
+        return 1;
+    }
+
+    if (argc > 2 && argv[2][0] == 'f')
+    {
+        std::cout << "datatype is float" << std::endl;
+        read_assemble_calc_post<float>(std::string{argv[1]});
+    }
+    else
+    {
+        std::cout << "datatype is double" << std::endl;
+        read_assemble_calc_post<double>(std::string{argv[1]});
+    }
+    return 0;
+}
+
+template<typename datatype>
+void read_assemble_calc_post(std::string filename)
+{
+    // TODO make something like this work to use user input
+    //using datatype = ((argc > 2 && (std::string{argv[2]} == "float")) ? float : double);
+    //using typelist[2] = {float, double};
     clock_t time[2];
     std::cout << ">- CPU: MESH FORMAT, Q2 -<" << std::endl;
-    std::vector<Vertex<double>> vertices;
-    std::vector<TriangleQ2<double>> elements;
+    std::vector<Vertex<datatype>> nodes;
+    std::vector<Element<datatype>*> elements;
 
-    std::string filename{"../data/square_fine_q2.msh"};
-
-    file_to_mesh(filename, vertices, elements);
-    std::cout << vertices.size() << std::endl;
+    //file_to_mesh(filename, nodes, elements);
+    file_to_mesh_all(filename, nodes, elements);
+    std::cout << nodes.size() << std::endl;
     std::cout << elements.size() << std::endl;
 
-    std::cout << "assemble" << std::flush;
+    std::cout << "structure" << std::flush;
     time[0] = clock();
-    CsrMatrixCpu<double> mat(vertices.size());
+    CsrMatrixCpu<datatype> mat(nodes.size());
     structure(mat, elements);
     time[0] -= clock();
+    std::cout << " - done (" << float(-time[0]) / CLOCKS_PER_SEC * 1000.0f << ")" << std::endl;
+    std::cout << "assemble" << std::flush;
     time[1] = clock();
     assemble(mat, elements);
     time[1] -= clock();
-    std::cout << " - done (" << float(-time[0]) / CLOCKS_PER_SEC * 1000.0f << ", " << float(-time[1]) / CLOCKS_PER_SEC * 1000.0f << ")" << std::endl;
+    std::cout << " - done (" << float(-time[1]) / CLOCKS_PER_SEC * 1000.0f << ")" << std::endl;
 
     // assemble rhs
-    size_t numvertices{vertices.size()};
+    std::function<datatype(datatype, datatype)> f = [](datatype x, datatype y)
+                    { return static_cast<datatype>(2.0) * (x - x*x + y - y*y); };
+    size_t numvertices{nodes.size()};
     VectorCpu rhs(numvertices, 0.0);
     for (const auto& e : elements)
     {
-        const double a{e._p1.x - e._p0.x};
-        const double c{e._p1.y - e._p0.y};
-        const double b{e._p2.x - e._p0.x};
-        const double d{e._p2.y - e._p0.y};
-        const double detB{std::abs(a*d - b*c)};
-        rhs.add(e._p0.id, (-27.0/96.0 * (1.0 - 1.0/3.0 - 1.0/3.0)*(1.0 - 2.0/3.0 - 2.0/3.0)
-                          + 25.0/96.0 * (1.0 - 1.0/5.0 - 3.0/5.0)*(1.0 - 2.0/5.0 - 6.0/5.0)
-                          + 25.0/96.0 * (1.0 - 1.0/5.0 - 1.0/5.0)*(1.0 - 2.0/5.0 - 2.0/5.0)
-                          + 25.0/96.0 * (1.0 - 3.0/5.0 - 1.0/5.0)*(1.0 - 6.0/5.0 - 2.0/5.0) )
-                          * detB * (2.0) * (e._p0.x * (1.0 - e._p0.x) + e._p0.y * (1.0 - e._p0.y) ) );
-        rhs.add(e._p1.id, (-27.0/96.0 * 1.0/3.0 * (2.0*1.0/3.0 - 1.0)
-                          + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0)
-                          + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0)
-                          + 25.0/96.0 * 3.0/5.0 * (2.0*3.0/5.0 - 1.0) )
-                          * detB * (2.0) * (e._p1.x * (1.0 - e._p1.x) + e._p1.y * (1.0 - e._p1.y) ) );
-        rhs.add(e._p2.id, (-27.0/96.0 * 1.0/3.0 * (2.0*1.0/3.0 - 1.0)
-                          + 25.0/96.0 * 3.0/5.0 * (2.0*3.0/5.0 - 1.0)
-                          + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0)
-                          + 25.0/96.0 * 1.0/5.0 * (2.0*1.0/5.0 - 1.0) )
-                          * detB * (2.0) * (e._p2.x * (1.0 - e._p2.x) + e._p2.y * (1.0 - e._p2.y) ) );
-        rhs.add(e._p3_id, (-27.0/96.0 * 4.0 * 1.0/3.0 *(1.0 - 1.0/3.0 - 1.0/3.0)
-                          + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 1.0/5.0 - 3.0/5.0)
-                          + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 1.0/5.0 - 1.0/5.0)
-                          + 25.0/96.0 * 4.0 * 3.0/5.0 *(1.0 - 3.0/5.0 - 1.0/5.0) )
-                          * detB * (2.0) * (vertices[e._p3_id].x * (1.0 - vertices[e._p3_id].x) + vertices[e._p3_id].y * (1.0 - vertices[e._p3_id].y) ) );
-        rhs.add(e._p4_id, (-27.0/96.0 * 4.0 * 1.0/3.0 * 1.0/3.0
-                          + 25.0/96.0 * 4.0 * 1.0/5.0 * 3.0/5.0
-                          + 25.0/96.0 * 4.0 * 1.0/5.0 * 1.0/5.0
-                          + 25.0/96.0 * 4.0 * 3.0/5.0 * 1.0/5.0 )
-                          * detB * (2.0) * (vertices[e._p4_id].x * (1.0 - vertices[e._p4_id].x) + vertices[e._p4_id].y * (1.0 - vertices[e._p4_id].y) ) );
-        rhs.add(e._p5_id, (-27.0/96.0 * 4.0 * 1.0/3.0 *(1.0 - 1.0/3.0 - 1.0/3.0)
-                          + 25.0/96.0 * 4.0 * 3.0/5.0 *(1.0 - 1.0/5.0 - 3.0/5.0)
-                          + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 1.0/5.0 - 1.0/5.0)
-                          + 25.0/96.0 * 4.0 * 1.0/5.0 *(1.0 - 3.0/5.0 - 1.0/5.0) )
-                          * detB * (2.0) * (vertices[e._p5_id].x * (1.0 - vertices[e._p5_id].x) + vertices[e._p5_id].y * (1.0 - vertices[e._p5_id].y) ) );
+        const std::vector<size_t> nodeids = e->vertexids();
+        Quadrature<Element, datatype> quad(e);
+        for (size_t i{0}; i < nodeids.size(); ++i)
+    //        rhs.add(nodeids[i], f(nodes[nodeids[i]].x, nodes[nodeids[i]].y) * quad.integrate_basisfunction(2, i));
+            rhs.add(nodeids[i], f(nodes[nodeids[i]].x, nodes[nodeids[i]].y) * quad.integrate_basisfunction(3, i));
     }
     // dirichlet boundary
-    for (const auto& n : vertices)
+    for (const auto& n : nodes)
     {
         if (n.x == 0.0 || n.y == 0.0 || n.x == 1.0 || n.y == 1.0)
         {
@@ -93,7 +96,7 @@ int main()
     }
 
     // solve LGS
-    CgSolver<CsrMatrixCpu<double>, VectorCpu> solver(mat, rhs);
+    CgSolver<CsrMatrixCpu<datatype>, VectorCpu> solver(mat, rhs);
     VectorCpu res(numvertices, 0.1);
     solver.solve(res);
 
@@ -104,24 +107,32 @@ int main()
     output << "ASCII" << std::endl;
     output << "DATASET UNSTRUCTURED_GRID" << std::endl;
     output << std::endl;
-    output << "POINTS " << numvertices << " double" << std::endl;
-    for (const auto& n : vertices)
+    output << "POINTS " << numvertices << (typeid(datatype) == typeid(float) ? " float" : " double") << std::endl;
+    for (const auto& n : nodes)
         output << n.x << " " << n.y << " 0" << std::endl;
     output << std::endl;
-    output << "CELLS " << elements.size() << " " << 4*elements.size() << std::endl;
+    //output << "CELLS " << elements.size() << " " << 4*elements.size() << std::endl;
+    output << "CELLS " << elements.size() << " " << 5*elements.size() << std::endl;
     for (const auto& e : elements)
-        output << "3 " << e._p0.id << " " << e._p1.id << " " << e._p2.id << std::endl;
+    {
+        //for (const auto id : e->vertexids())
+            //TODO
+    //    output << "3 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << std::endl;
+        output << "4 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << " " << e->vertexids()[3] << std::endl;
+    }
     output << std::endl;
     output << "CELL_TYPES " << elements.size() << std::endl;
     for (size_t i{0}; i < elements.size(); ++i)
-        output << "5" << std::endl;
+    //if (typeid(*_element) == typeid(TriangleQ1<datatype>)
+    //    output << "5" << std::endl; // TriangleQ1
+        //output << "22" << std::endl; // TriangleQ2
+        output << "9" << std::endl; // QuadrilateralQ1
+        //output << "23" << std::endl; // QuadrilateralQ2
     output << std::endl;
     output << "POINT_DATA " << numvertices << std::endl;
-    output << "SCALARS u double" << std::endl;
+    output << "SCALARS u " << (typeid(datatype) == typeid(float) ? "float" : "double") << std::endl;
     output << "LOOKUP_TABLE default" << std::endl;
     for (size_t i{0}; i < numvertices; ++i)
         output << (std::abs(res._values[i]) < 0.0001 ? 0 : res._values[i]) << std::endl;
     output.close();
-
-    return 0;
 }

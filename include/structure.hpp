@@ -3,10 +3,12 @@
 
 #include "csrmatrixcpu.hpp"
 
-void structure(CsrMatrixCpu<double>& mat, const std::vector<TriangleQ2<double>>& elements)
+template<typename datatype>
+void structure(CsrMatrixCpu<datatype>& mat, const std::vector<Element<datatype>*>& elements)
 {
     const size_t num_elem{elements.size()};
-    const size_t max_rowlength{40};
+//    const size_t max_rowlength{40};
+    const size_t max_rowlength{60};
 
     size_t* num_nonzeros = new size_t[mat._numrows];
     for (size_t i{0}; i < mat._numrows; ++i)
@@ -14,18 +16,14 @@ void structure(CsrMatrixCpu<double>& mat, const std::vector<TriangleQ2<double>>&
 
     size_t* colind = new size_t[max_rowlength*mat._numrows];
 
-    for (size_t i(0); i < num_elem; ++i)
+    for (size_t i{0}; i < num_elem; ++i)
     {
-        size_t nodes[6];
-        nodes[0] = elements[i]._p0.id;
-        nodes[1] = elements[i]._p1.id;
-        nodes[2] = elements[i]._p2.id;
-        nodes[3] = elements[i]._p3_id;
-        nodes[4] = elements[i]._p4_id;
-        nodes[5] = elements[i]._p5_id;
-        for (size_t node1{0}; node1 < 6; ++node1)
+        size_t nodes[elements[i]->num_basis_functions()];
+        for (size_t id{0}; id < elements[i]->num_basis_functions(); ++id)
+            nodes[id] = elements[i]->vertexids()[id];
+        for (size_t node1{0}; node1 < elements[i]->num_basis_functions(); ++node1)
         {
-            for (size_t node2{0}; node2 < 6; ++node2)
+            for (size_t node2{0}; node2 < elements[i]->num_basis_functions(); ++node2)
             {
                 size_t a{nodes[node1]};
                 size_t b{nodes[node2]};
@@ -65,7 +63,7 @@ void structure(CsrMatrixCpu<double>& mat, const std::vector<TriangleQ2<double>>&
     delete[] mat._colind;
     delete[] mat._values;
     mat._colind = new size_t[num_values];
-    mat._values = new double[num_values];
+    mat._values = new datatype[num_values];
 
     size_t current_pos{0};
     for (size_t row{0}; row < mat._numrows; ++row)

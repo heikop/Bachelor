@@ -27,6 +27,21 @@ public:
 
     virtual const std::vector<size_t> vertexids() const = 0;
 
+    virtual datatype evaluate_ref(const unsigned int basis_function,
+                                  const datatype x) const = 0;
+    virtual datatype evaluate_ref(const unsigned int basis_function,
+                                  const datatype x,
+                                  const datatype y) const = 0;
+    virtual std::array<datatype, 2> gradient_ref(const unsigned int basis_function,
+                                                 const datatype x) = 0;
+    virtual std::array<datatype, 2> gradient_ref(const unsigned int basis_function,
+                                                 const datatype x,
+                                                 const datatype y) const = 0;
+    virtual const std::array<std::array<datatype, 2>, 2> transformation_matrix() const;
+    virtual const datatype area() const;
+    virtual const datatype trafo_determinant(const datatype xi,
+                                             const datatype eta) const;
+
 protected:
     const unsigned int _dimension;
     const unsigned int _degree;
@@ -51,6 +66,16 @@ public:
                                   const unsigned int direction,
                                   const datatype x) const = 0;
     virtual const std::vector<size_t> vertexids() const = 0;
+
+private:
+    std::array<datatype, 2> gradient_ref(const unsigned int basis_function,
+                                         const datatype x,
+                                         const datatype y) const
+        { assert(false); }
+    datatype evaluate_ref(const unsigned int basis_function,
+                          const datatype x,
+                          const datatype y) const
+        { assert(false); }
 };
 
 // ***** // ***** Line ***** // ***** //
@@ -132,6 +157,21 @@ public:
                                                  const datatype x,
                                                  const datatype y) const = 0;
     virtual const std::vector<size_t> vertexids() const = 0;
+
+private:
+    std::array<datatype, 2> gradient_ref(const unsigned int basis_function,
+                                         const datatype x)
+        { assert(false); }
+    datatype evaluate_ref(const unsigned int basis_function,
+                          const datatype x) const
+        { assert(false); }
+
+//    std::array<datatype, 2> gradient_ref(const unsigned int basis_function,
+//                                         const datatype x) const = delete;
+//private:
+//    std::array<datatype, 2> gradient_ref(const unsigned int basis_function,
+//                                         const datatype x)
+//        { assert(false); return {0,0}; }
 };
 
 // ***** // ***** Triangle ***** // ***** //
@@ -149,6 +189,13 @@ public:
         Element2D<datatype>(deg, numbf),
         _p0{p0}, _p1{p1}, _p2{p2} {}
     virtual const std::vector<size_t> vertexids() const = 0;
+    virtual const datatype area() const {
+            return 0; // TODO
+            }
+    virtual const datatype trafo_determinant(const datatype xi,
+                                             const datatype eta) const {
+            return 0; // TODO
+            }
 
 public:
     const std::array<std::array<datatype, 2>, 2> transformation_matrix() const;
@@ -207,8 +254,7 @@ public:
     const std::vector<size_t> vertexids() const
         { return std::vector<size_t>{this->_p0.id, this->_p1.id, this->_p2.id, _p3_id, _p4_id, _p5_id}; }
 
-//private:
-public:
+private:
     const size_t _p3_id, _p4_id, _p5_id;
 };
 
@@ -227,9 +273,24 @@ protected:
         Element2D<datatype>(deg, numbf),
         _p0{p0}, _p1{p1}, _p2{p2}, _p3{p3} {}
     virtual const std::vector<size_t> vertexids() const = 0;
+    virtual const datatype area() const {
+            return std::abs((_p2.x - _p0.x) * (_p3.y - _p1.y)
+                   -(_p2.y - _p0.y) * (_p3.x - _p1.x))
+                                        / static_cast<datatype>(2);
+            }
 
 public:
-    //const std::array<std::array<datatype, 2>, 2> transformation_matrix() const; //TODO
+    const datatype trafo_determinant(const datatype xi,
+                                     const datatype eta) const {
+        std::array<std::array<datatype, 2>, 2> B;
+        B[0][0] = this->_p1.x + this->_p3.x * eta;
+        B[0][1] = this->_p2.x + this->_p3.x * xi;
+        B[1][0] = this->_p1.y + this->_p3.y * eta;
+        B[1][1] = this->_p2.y + this->_p3.y * xi;
+        return {std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0])};
+            }
+
+    const std::array<std::array<datatype, 2>, 2> transformation_matrix() const {assert(false);} //TODO
 
 protected:
     const Vertex<datatype> _p0, _p1, _p2, _p3;
@@ -256,7 +317,7 @@ public:
                                          const datatype x,
                                          const datatype y) const;
     const std::vector<size_t> vertexids() const
-        { return std::vector<size_t>{this->_p0.id, this->_p1.id, this->_p2.id, this->_p3_id}; }
+        { return std::vector<size_t>{this->_p0.id, this->_p1.id, this->_p2.id, this->_p3.id}; }
 };
 
 template<typename datatype>
@@ -270,9 +331,10 @@ public:
                     const size_t p4_id,
                     const size_t p5_id,
                     const size_t p6_id,
-                    const size_t p7_id):
-        Quadrilateral<datatype>(2, 8, p0, p1, p2, p3),
-        _p4_id{p4_id}, _p5_id{p5_id}, _p6_id{p6_id}, _p7_id{p7_id} {}
+                    const size_t p7_id,
+                    const size_t p8_id):
+        Quadrilateral<datatype>(2, 9, p0, p1, p2, p3),
+        _p4_id{p4_id}, _p5_id{p5_id}, _p6_id{p6_id}, _p7_id{p7_id}, _p8_id{p8_id} {}
 
     datatype evaluate_ref(const unsigned int basis_function,
                           const datatype x,
@@ -285,10 +347,10 @@ public:
                                          const datatype x,
                                          const datatype y) const;
     const std::vector<size_t> vertexids() const
-        { return std::vector<size_t>{this->_p0.id, this->_p1.id, this->_p2.id, this->_p3_id, _p4_id, _p5_id, _p6_id, _p7_id}; }
+        { return std::vector<size_t>{this->_p0.id, this->_p1.id, this->_p2.id, this->_p3.id, _p4_id, _p5_id, _p6_id, _p7_id, _p8_id}; }
 
 private:
-    const size_t _p4_id, _p5_id, _p6_id, _p7_id;
+    const size_t _p4_id, _p5_id, _p6_id, _p7_id, _p8_id;
 };
 
 #include "elements.tpp"
