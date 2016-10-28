@@ -278,31 +278,20 @@ std::array<datatype, 2> QuadrilateralQ1<datatype>::gradient_ref(const unsigned i
                                                                 const datatype eta) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
-    assert(xi >= static_cast<datatype>(-1)
+    assert(xi  >= static_cast<datatype>(-1)
         && eta >= static_cast<datatype>(-1)
-        && xi <= static_cast<datatype>( 1)
+        && xi  <= static_cast<datatype>( 1)
         && eta <= static_cast<datatype>( 1));
 
-//*
     std::array<std::array<datatype, 2>, 2> B;
-    B[0][0] = this->_p1.x + this->_p3.x * eta;
-    B[0][1] = this->_p2.x + this->_p3.x * xi;
-    B[1][0] = this->_p1.y + this->_p3.y * eta;
-    B[1][1] = this->_p2.y + this->_p3.y * xi;
+    B[0][0] = -(1.0-eta)/4.0*this->_p0.x + (1.0-eta)/4.0*this->_p1.x + (1.0+eta)/4.0*this->_p2.x - (1.0+eta)/4.0*this->_p3.x;
+    B[0][1] = -(1.0-xi )/4.0*this->_p0.x - (1.0+xi )/4.0*this->_p1.x + (1.0+xi )/4.0*this->_p2.x + (1.0-xi )/4.0*this->_p3.x;
+    B[1][0] = -(1.0-eta)/4.0*this->_p0.y + (1.0-eta)/4.0*this->_p1.y + (1.0+eta)/4.0*this->_p2.y - (1.0+eta)/4.0*this->_p3.y;
+    B[1][1] = -(1.0-xi )/4.0*this->_p0.y - (1.0+xi )/4.0*this->_p1.y + (1.0+xi )/4.0*this->_p2.y + (1.0-xi )/4.0*this->_p3.y;
     datatype detB{std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0])};
     std::array<std::array<datatype, 2>, 2> B_inv_t;
     B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
     B_inv_t[1][0] = -B[0][1] / detB; B_inv_t[1][1] =  B[0][0] / detB;
-
-    B_inv_t[0][0] = -(1.0-eta)/4.0*this->_p0.x + (1.0-eta)/4.0*this->_p1.x + (1.0+eta)/4.0*this->_p2.x - (1.0+eta)/4.0*this->_p3.x;
-    B_inv_t[0][1] = -(1.0-xi )/4.0*this->_p0.x - (1.0+xi )/4.0*this->_p1.x + (1.0+xi )/4.0*this->_p2.x + (1.0-xi )/4.0*this->_p3.x;
-    B_inv_t[1][0] = -(1.0-eta)/4.0*this->_p0.y + (1.0-eta)/4.0*this->_p1.y + (1.0+eta)/4.0*this->_p2.y - (1.0+eta)/4.0*this->_p3.y;
-    B_inv_t[1][1] = -(1.0-xi )/4.0*this->_p0.y - (1.0+xi )/4.0*this->_p1.y + (1.0+xi )/4.0*this->_p2.y + (1.0-xi )/4.0*this->_p3.y;
-    detB = std::abs(B_inv_t[0][0] * B_inv_t[1][1] - B_inv_t[0][1] * B_inv_t[1][0]);
-    B_inv_t[0][0] *= std::sqrt(detB);
-    B_inv_t[0][1] *= std::sqrt(detB);
-    B_inv_t[1][0] *= std::sqrt(detB);
-    B_inv_t[1][1] *= std::sqrt(detB);
 
     std::array<datatype, 2> grad;
     if (basis_function == 0)
@@ -317,56 +306,47 @@ std::array<datatype, 2> QuadrilateralQ1<datatype>::gradient_ref(const unsigned i
     else //if (basis_function == 3)
         grad = {(static_cast<datatype>(1) + eta) / static_cast<datatype>(-4) ,
                 (static_cast<datatype>(1) - xi ) / static_cast<datatype>( 4) };
-    return {B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1],
-            B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1]};
-//*/
-/*
-
-    if (basis_function == 0)
-        return {(static_cast<datatype>(1) - eta) / static_cast<datatype>(-4) ,
-                (static_cast<datatype>(1) - xi ) / static_cast<datatype>(-4) };
-    else if (basis_function == 1)
-        return {(static_cast<datatype>(1) - eta) / static_cast<datatype>( 4) ,
-                (static_cast<datatype>(1) + xi ) / static_cast<datatype>(-4) };
-    else if (basis_function == 2)
-        return {(static_cast<datatype>(1) + eta) / static_cast<datatype>( 4) ,
-                (static_cast<datatype>(1) + xi ) / static_cast<datatype>( 4) };
-    else //if (basis_function == 3)
-        return {(static_cast<datatype>(1) + eta) / static_cast<datatype>(-4) ,
-                (static_cast<datatype>(1) - xi ) / static_cast<datatype>( 4) };
-*/
+    return {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]) * std::sqrt(detB),
+            (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1]) * std::sqrt(detB)};
 }
 
 // ***** // ***** QuadrilateralQ2 ***** // ***** //
-// TODO
 template<typename datatype>
 datatype QuadrilateralQ2<datatype>::evaluate_ref(const unsigned int basis_function,
-                                                 const datatype x,
-                                                 const datatype y) const
+                                                 const datatype xi,
+                                                 const datatype eta) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
-    assert(x >= static_cast<datatype>(-1)
-        && y >= static_cast<datatype>(-1)
-        && x <= static_cast<datatype>( 1)
-        && y <= static_cast<datatype>( 1));
+    assert(xi  >= static_cast<datatype>(-1)
+        && eta >= static_cast<datatype>(-1)
+        && xi  <= static_cast<datatype>( 1)
+        && eta <= static_cast<datatype>( 1));
+
+    std::array<std::array<datatype, 2>, 2> B_inv_t;
+    B_inv_t[0][0] = -(1.0-eta)/4.0*this->_p0.x + (1.0-eta)/4.0*this->_p1.x + (1.0+eta)/4.0*this->_p2.x - (1.0+eta)/4.0*this->_p3.x;
+    B_inv_t[0][1] = -(1.0-xi )/4.0*this->_p0.x - (1.0+xi )/4.0*this->_p1.x + (1.0+xi )/4.0*this->_p2.x + (1.0-xi )/4.0*this->_p3.x;
+    B_inv_t[1][0] = -(1.0-eta)/4.0*this->_p0.y + (1.0-eta)/4.0*this->_p1.y + (1.0+eta)/4.0*this->_p2.y - (1.0+eta)/4.0*this->_p3.y;
+    B_inv_t[1][1] = -(1.0-xi )/4.0*this->_p0.y - (1.0+xi )/4.0*this->_p1.y + (1.0+xi )/4.0*this->_p2.y + (1.0-xi )/4.0*this->_p3.y;
+    datatype detB = std::abs(B_inv_t[0][0] * B_inv_t[1][1] - B_inv_t[0][1] * B_inv_t[1][0]);
+
     if (basis_function == 0)
-        return x * (static_cast<datatype>(1) - x) * y * (static_cast<datatype>(1) - y) / static_cast<datatype>(4);
+        return xi * (static_cast<datatype>(1) - xi) * eta * (static_cast<datatype>(1) - eta) / static_cast<datatype>(4) * detB;
     else if (basis_function == 1)
-        return x * (static_cast<datatype>(1) + x) * y * (static_cast<datatype>(1) - y) / static_cast<datatype>(4);
+        return xi * (static_cast<datatype>(1) + xi) * eta * (static_cast<datatype>(1) - eta) / static_cast<datatype>(-4) * detB;
     else if (basis_function == 2)
-        return x * (static_cast<datatype>(1) + x) * y * (static_cast<datatype>(1) + y) / static_cast<datatype>(4);
+        return xi * (static_cast<datatype>(1) + xi) * eta * (static_cast<datatype>(1) + eta) / static_cast<datatype>(4) * detB;
     else if (basis_function == 3)
-        return x * (static_cast<datatype>(1) - x) * y * (static_cast<datatype>(1) + y) / static_cast<datatype>(4);
+        return xi * (static_cast<datatype>(1) - xi) * eta * (static_cast<datatype>(1) + eta) / static_cast<datatype>(-4) * detB;
     else if (basis_function == 4)
-        return (static_cast<datatype>(1) - x) * (static_cast<datatype>(1) + x) * y * (static_cast<datatype>(1) - y) / static_cast<datatype>(-2);
+        return (static_cast<datatype>(1) - xi) * (static_cast<datatype>(1) + xi) * eta * (static_cast<datatype>(1) - eta) / static_cast<datatype>(-2) * detB;
     else if (basis_function == 5)
-        return x * (static_cast<datatype>(1) + x) * (static_cast<datatype>(1) - y) * (static_cast<datatype>(1) + y) / static_cast<datatype>(-2);
+        return xi * (static_cast<datatype>(1) + xi) * (static_cast<datatype>(1) - eta) * (static_cast<datatype>(1) + eta) / static_cast<datatype>( 2) * detB;
     else if (basis_function == 6)
-        return (static_cast<datatype>(1) - x) * (static_cast<datatype>(1) + x) * y * (static_cast<datatype>(1) + y) / static_cast<datatype>(-2);
+        return (static_cast<datatype>(1) - xi) * (static_cast<datatype>(1) + xi) * eta * (static_cast<datatype>(1) + eta) / static_cast<datatype>( 2) * detB;
     else if (basis_function == 7)
-        return x * (static_cast<datatype>(1) - x) * (static_cast<datatype>(1) - y) * (static_cast<datatype>(1) + y) / static_cast<datatype>(-2);
+        return xi * (static_cast<datatype>(1) - xi) * (static_cast<datatype>(1) - eta) * (static_cast<datatype>(1) + eta) / static_cast<datatype>(-2) * detB;
     else //if (basis_function == 8)
-        return (static_cast<datatype>(1) - x*x) * (static_cast<datatype>(1) - y*y);
+        return (static_cast<datatype>(1) - xi*xi) * (static_cast<datatype>(1) - eta*eta) * detB;
 }
 
 template<typename datatype>
@@ -416,16 +396,26 @@ std::array<datatype, 2> QuadrilateralQ2<datatype>::gradient_ref(const unsigned i
                                                                 const datatype eta) const
 {
     assert(basis_function >= 0 && basis_function <= this->num_basis_functions());
-    assert(xi >= static_cast<datatype>(-1)
+    assert(xi  >= static_cast<datatype>(-1)
         && eta >= static_cast<datatype>(-1)
-        && xi <= static_cast<datatype>( 1)
+        && xi  <= static_cast<datatype>( 1)
         && eta <= static_cast<datatype>( 1));
 
+//    std::array<std::array<datatype, 2>, 2> B;
+//    B[0][0] = this->_p1.x + this->_p3.x * eta;
+//    B[0][1] = this->_p2.x + this->_p3.x * xi;
+//    B[1][0] = this->_p1.y + this->_p3.y * eta;
+//    B[1][1] = this->_p2.y + this->_p3.y * xi;
+//    datatype detB{std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0])};
+//    std::array<std::array<datatype, 2>, 2> B_inv_t;
+//    B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
+//    B_inv_t[1][0] = -B[0][1] / detB; B_inv_t[1][1] =  B[0][0] / detB;
+
     std::array<std::array<datatype, 2>, 2> B;
-    B[0][0] = this->_p1.x + this->_p3.x * eta;
-    B[0][1] = this->_p2.x + this->_p3.x * xi;
-    B[1][0] = this->_p1.y + this->_p3.y * eta;
-    B[1][1] = this->_p2.y + this->_p3.y * xi;
+    B[0][0] = -(1.0-eta)/4.0*this->_p0.x + (1.0-eta)/4.0*this->_p1.x + (1.0+eta)/4.0*this->_p2.x - (1.0+eta)/4.0*this->_p3.x;
+    B[0][1] = -(1.0-xi )/4.0*this->_p0.x - (1.0+xi )/4.0*this->_p1.x + (1.0+xi )/4.0*this->_p2.x + (1.0-xi )/4.0*this->_p3.x;
+    B[1][0] = -(1.0-eta)/4.0*this->_p0.y + (1.0-eta)/4.0*this->_p1.y + (1.0+eta)/4.0*this->_p2.y - (1.0+eta)/4.0*this->_p3.y;
+    B[1][1] = -(1.0-xi )/4.0*this->_p0.y - (1.0+xi )/4.0*this->_p1.y + (1.0+xi )/4.0*this->_p2.y + (1.0-xi )/4.0*this->_p3.y;
     datatype detB{std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0])};
     std::array<std::array<datatype, 2>, 2> B_inv_t;
     B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
@@ -440,8 +430,8 @@ std::array<datatype, 2> QuadrilateralQ2<datatype>::gradient_ref(const unsigned i
     }
     else if (basis_function == 1)
     {
-        grad = {(static_cast<datatype>(1) + static_cast<datatype>(2) * xi) * eta * (static_cast<datatype>(1) - eta) / static_cast<datatype>(4) ,
-                xi * (static_cast<datatype>(1) + xi) * (static_cast<datatype>(1) - static_cast<datatype>(2) * eta) / static_cast<datatype>(4) };
+        grad = {(static_cast<datatype>(1) + static_cast<datatype>(2) * xi) * eta * (static_cast<datatype>(1) - eta) / static_cast<datatype>(-4) ,
+                xi * (static_cast<datatype>(1) + xi) * (static_cast<datatype>(1) - static_cast<datatype>(2) * eta) / static_cast<datatype>(-4) };
     }
     else if (basis_function == 2)
     {
@@ -450,38 +440,44 @@ std::array<datatype, 2> QuadrilateralQ2<datatype>::gradient_ref(const unsigned i
     }
     else if (basis_function == 3)
     {
-        grad = {(static_cast<datatype>(1) - static_cast<datatype>(2) * xi) * eta * (static_cast<datatype>(1) + eta) / static_cast<datatype>(4) ,
-                xi * (static_cast<datatype>(1) - xi) * (static_cast<datatype>(1) + static_cast<datatype>(2) * eta) / static_cast<datatype>(4) };
+        grad = {(static_cast<datatype>(1) - static_cast<datatype>(2) * xi) * eta * (static_cast<datatype>(1) + eta) / static_cast<datatype>(-4) ,
+                xi * (static_cast<datatype>(1) - xi) * (static_cast<datatype>(1) + static_cast<datatype>(2) * eta) / static_cast<datatype>(-4) };
     }
     else if (basis_function == 4)
     {
         //grad = {xi * eta * (static_cast<datatype>(1) - eta) / static_cast<datatype>(-2) ,
-        grad = {static_cast<datatype>(-2) * xi * eta * (static_cast<datatype>(1) - eta) / static_cast<datatype>(-2) ,
+        //grad = {static_cast<datatype>(-2) * xi * eta * (static_cast<datatype>(1) - eta) / static_cast<datatype>(-2) ,
+        grad = {xi * eta * (static_cast<datatype>(1) - eta) ,
                 (static_cast<datatype>(1) - xi) * (static_cast<datatype>(1) + xi) * (static_cast<datatype>(1) - static_cast<datatype>(2) * eta) / static_cast<datatype>(-2) };
     }
     else if (basis_function == 5)
     {
-        grad = {(static_cast<datatype>(1) + static_cast<datatype>(2) * xi) * (static_cast<datatype>(1) - eta) * (static_cast<datatype>(1) + eta) / static_cast<datatype>(-2) ,
-                xi * (static_cast<datatype>(1) + xi) * static_cast<datatype>(-2) * eta / static_cast<datatype>(-2) };
-                //xi * (static_cast<datatype>(1) + xi) * eta / static_cast<datatype>(-2) };
+        grad = {(static_cast<datatype>(1) + static_cast<datatype>(2) * xi) * (static_cast<datatype>(1) - eta) * (static_cast<datatype>(1) + eta) / static_cast<datatype>(2) ,
+        //        xi * (static_cast<datatype>(1) + xi) * static_cast<datatype>(-2) * eta / static_cast<datatype>(-2) };
+        //        xi * (static_cast<datatype>(1) + xi) * eta / static_cast<datatype>(-2) };
+                -xi * (static_cast<datatype>(1) + xi) * eta };
     }
     else if (basis_function == 6)
     {
         //grad = {xi * eta * (static_cast<datatype>(1) + eta) / static_cast<datatype>(-2) ,
-        grad = {static_cast<datatype>(-2) * xi * eta * (static_cast<datatype>(1) + eta) / static_cast<datatype>(-2) ,
-                (static_cast<datatype>(1) - xi) * (static_cast<datatype>(1) + xi) * (static_cast<datatype>(1) + static_cast<datatype>(2) * eta) / static_cast<datatype>(-2) };
+        //grad = {static_cast<datatype>(-2) * xi * eta * (static_cast<datatype>(1) + eta) / static_cast<datatype>(-2) ,
+        grad = {-xi * eta * (static_cast<datatype>(1) + eta) ,
+                (static_cast<datatype>(1) - xi) * (static_cast<datatype>(1) + xi) * (static_cast<datatype>(1) + static_cast<datatype>(2) * eta) / static_cast<datatype>(2) };
     }
     else if (basis_function == 7)
     {
         grad = {(static_cast<datatype>(1) - static_cast<datatype>(2) * xi) * (static_cast<datatype>(1) - eta) * (static_cast<datatype>(1) + eta) / static_cast<datatype>(-2) ,
-                xi * (static_cast<datatype>(1) - xi) * static_cast<datatype>(-2) * eta / static_cast<datatype>(-2) };
-                //xi * (static_cast<datatype>(1) - xi) * eta / static_cast<datatype>(-2) };
+                xi * (static_cast<datatype>(1) - xi) * eta };
+        //        xi * (static_cast<datatype>(1) - xi) * eta / static_cast<datatype>(-2) };
+        //        xi * (static_cast<datatype>(1) - xi) * static_cast<datatype>(-2) * eta / static_cast<datatype>(-2) };
     }
     else //if (basis_function == 8)
     {
         grad = {static_cast<datatype>(-2) * xi * (static_cast<datatype>(1) - eta*eta) ,
                 static_cast<datatype>(-2) * (static_cast<datatype>(1) - xi*xi) * eta };
     }
-    return {B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1],
-            B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1]};
+    return {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]) * std::sqrt(detB),
+            (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1]) * std::sqrt(detB)};
+    //return {B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1],
+    //        B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1]};
 }

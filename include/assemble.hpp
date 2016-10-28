@@ -18,6 +18,7 @@ void assemble(CsrMatrixCpu<datatype>& matrix, std::vector<elemtype<datatype>*>& 
             for (size_t j{0}; j < vertexids.size(); ++j)
 //                matrix.add(vertexids[i], vertexids[j], quad.integrate_laplace(2, i, j));
                 matrix.add(vertexids[i], vertexids[j], quad.integrate_laplace(3, i, j));
+//                matrix.add(vertexids[i], vertexids[j], quad.integrate_laplace(4, i, j));
     }
 }
 

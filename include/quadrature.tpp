@@ -112,12 +112,69 @@ const datatype Quadrature<elemtype, datatype>::integrate_laplace(const unsigned 
 
             res /= static_cast<datatype>(81); // all weights are .../81
             break; }
+        case 4:
+        {   datatype qp1{std::sqrt((3.0 - 2.0*std::sqrt(6.0/5.0)) / 7.0)};
+            datatype qp2{std::sqrt((3.0 + 2.0*std::sqrt(6.0/5.0)) / 7.0)};
+            datatype w1{static_cast<datatype>(18) + std::sqrt(static_cast<datatype>(30.0))};
+            datatype w2{static_cast<datatype>(18) - std::sqrt(static_cast<datatype>(30.0))};
+
+            grad1 = _element->gradient_ref(firstbf , -qp1, -qp1);
+            grad2 = _element->gradient_ref(secondbf, -qp1, -qp1);
+            res   = (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w1 * w1;
+            grad1 = _element->gradient_ref(firstbf , -qp1, -qp2);
+            grad2 = _element->gradient_ref(secondbf, -qp1, -qp2);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w1 * w2;
+            grad1 = _element->gradient_ref(firstbf , -qp1,  qp1);
+            grad2 = _element->gradient_ref(secondbf, -qp1,  qp1);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w1 * w1;
+            grad1 = _element->gradient_ref(firstbf , -qp1,  qp2);
+            grad2 = _element->gradient_ref(secondbf, -qp1,  qp2);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w1 * w2;
+
+            grad1 = _element->gradient_ref(firstbf , -qp2, -qp1);
+            grad2 = _element->gradient_ref(secondbf, -qp2, -qp1);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w2 * w1;
+            grad1 = _element->gradient_ref(firstbf , -qp2, -qp2);
+            grad2 = _element->gradient_ref(secondbf, -qp2, -qp2);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w2 * w2;
+            grad1 = _element->gradient_ref(firstbf , -qp2,  qp1);
+            grad2 = _element->gradient_ref(secondbf, -qp2,  qp1);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w2 * w1;
+            grad1 = _element->gradient_ref(firstbf , -qp2,  qp2);
+            grad2 = _element->gradient_ref(secondbf, -qp2,  qp2);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w2 * w2;
+
+            grad1 = _element->gradient_ref(firstbf ,  qp1, -qp1);
+            grad2 = _element->gradient_ref(secondbf,  qp1, -qp1);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w1 * w1;
+            grad1 = _element->gradient_ref(firstbf ,  qp1, -qp2);
+            grad2 = _element->gradient_ref(secondbf,  qp1, -qp2);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w1 * w2;
+            grad1 = _element->gradient_ref(firstbf ,  qp1,  qp1);
+            grad2 = _element->gradient_ref(secondbf,  qp1,  qp1);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w1 * w1;
+            grad1 = _element->gradient_ref(firstbf ,  qp1,  qp2);
+            grad2 = _element->gradient_ref(secondbf,  qp1,  qp2);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w1 * w2;
+
+            grad1 = _element->gradient_ref(firstbf ,  qp2, -qp1);
+            grad2 = _element->gradient_ref(secondbf,  qp2, -qp1);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w2 * w1;
+            grad1 = _element->gradient_ref(firstbf ,  qp2, -qp2);
+            grad2 = _element->gradient_ref(secondbf,  qp2, -qp2);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w2 * w2;
+            grad1 = _element->gradient_ref(firstbf ,  qp2,  qp1);
+            grad2 = _element->gradient_ref(secondbf,  qp2,  qp1);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w2 * w1;
+            grad1 = _element->gradient_ref(firstbf ,  qp2,  qp2);
+            grad2 = _element->gradient_ref(secondbf,  qp2,  qp2);
+            res  += (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * w2 * w2;
+
+            res /= static_cast<datatype>(36 * 36); // all weights are .../36
+            break; }
         default:
             assert(false);
         }
-
-        //res /= _element->area();
-        //res /= _element->area() / static_cast<datatype>(4);
     }
     else
         assert(false);
@@ -185,8 +242,6 @@ const datatype Quadrature<elemtype, datatype>::integrate_basisfunction(const uns
         default:
             assert(false);
         }
-        //res /= _element->area();
-        //res /= _element->area() / static_cast<datatype>(4);
     }
     else
         assert(false);

@@ -273,23 +273,27 @@ protected:
         Element2D<datatype>(deg, numbf),
         _p0{p0}, _p1{p1}, _p2{p2}, _p3{p3} {}
     virtual const std::vector<size_t> vertexids() const = 0;
-    virtual const datatype area() const {
-            return std::abs((_p2.x - _p0.x) * (_p3.y - _p1.y)
-                   -(_p2.y - _p0.y) * (_p3.x - _p1.x))
-                                        / static_cast<datatype>(2);
-            }
 
 public:
     const datatype trafo_determinant(const datatype xi,
                                      const datatype eta) const {
         std::array<std::array<datatype, 2>, 2> B;
-        B[0][0] = this->_p1.x + this->_p3.x * eta;
-        B[0][1] = this->_p2.x + this->_p3.x * xi;
-        B[1][0] = this->_p1.y + this->_p3.y * eta;
-        B[1][1] = this->_p2.y + this->_p3.y * xi;
+        //B[0][0] = this->_p1.x + this->_p3.x * eta;
+        //B[0][1] = this->_p2.x + this->_p3.x * xi;
+        //B[1][0] = this->_p1.y + this->_p3.y * eta;
+        //B[1][1] = this->_p2.y + this->_p3.y * xi;
+        //return {std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0])};
+        B[0][0] = -(1.0-eta)/4.0*this->_p0.x + (1.0-eta)/4.0*this->_p1.x + (1.0+eta)/4.0*this->_p2.x - (1.0+eta)/4.0*this->_p3.x;
+        B[0][1] = -(1.0-xi )/4.0*this->_p0.x - (1.0+xi )/4.0*this->_p1.x + (1.0+xi )/4.0*this->_p2.x + (1.0-xi )/4.0*this->_p3.x;
+        B[1][0] = -(1.0-eta)/4.0*this->_p0.y + (1.0-eta)/4.0*this->_p1.y + (1.0+eta)/4.0*this->_p2.y - (1.0+eta)/4.0*this->_p3.y;
+        B[1][1] = -(1.0-xi )/4.0*this->_p0.y - (1.0+xi )/4.0*this->_p1.y + (1.0+xi )/4.0*this->_p2.y + (1.0-xi )/4.0*this->_p3.y;
         return {std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0])};
             }
-
+    const datatype area() const {
+    return std::abs((_p2.x - _p0.x) * (_p3.y - _p1.y)
+           -(_p2.y - _p0.y) * (_p3.x - _p1.x))
+                                / static_cast<datatype>(2);
+    }
     const std::array<std::array<datatype, 2>, 2> transformation_matrix() const {assert(false);} //TODO
 
 protected:
