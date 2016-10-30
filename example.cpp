@@ -55,8 +55,8 @@ void read_assemble_calc_post(std::string filename)
 
     //file_to_mesh(filename, nodes, elements);
     file_to_mesh_all(filename, nodes, elements);
-    std::cout << nodes.size() << std::endl;
-    std::cout << elements.size() << std::endl;
+    std::cout << "num nodes: " << nodes.size() << std::endl;
+    std::cout << "num elements: " << elements.size() << std::endl;
 
     std::cout << "structure" << std::flush;
     time[0] = clock();
@@ -95,6 +95,7 @@ void read_assemble_calc_post(std::string filename)
         }
     }
 
+/*
     // solve LGS
     CgSolver<CsrMatrixCpu<datatype>, VectorCpu> solver(mat, rhs);
     VectorCpu res(numvertices, 0.1);
@@ -135,4 +136,5 @@ void read_assemble_calc_post(std::string filename)
     for (size_t i{0}; i < numvertices; ++i)
         output << (std::abs(res._values[i]) < 0.0001 ? 0 : res._values[i]) << std::endl;
     output.close();
+*/
 }
