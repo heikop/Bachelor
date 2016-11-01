@@ -9,6 +9,8 @@
 #include "mpihandler.hpp"
 #include "vectorcpu.hpp"
 
+#include <omp.h>
+
 template <typename datatype>
 class CsrMatrixCpu
 {

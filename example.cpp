@@ -16,13 +16,20 @@
 #include "include/csrmatrixcpu.hpp"
 #include "include/vectorcpu.hpp"
 
+#include <omp.h>
+#include <stdio.h>
+
 using namespace std;
 
 template<typename datatype>
-void read_assemble_calc_post(std::string filename);
+void read_assemble_calc_post(std::string filename, bool solve);
 
 int main(int argc, char* argv[])
 {
+    //#pragma omp parallel for
+    //for (int i=0; i < 10; i++)
+    //    //std::cout << i << ": " << omp_get_thread_num() << std::endl;
+    //    printf("threadID: %d - %d\n", omp_get_thread_num(), i);
     if (argc < 2)
     {
         std::cout << "no input file was given" << std::endl;
@@ -32,23 +39,31 @@ int main(int argc, char* argv[])
     if (argc > 2 && argv[2][0] == 'f')
     {
         std::cout << "datatype is float" << std::endl;
-        read_assemble_calc_post<float>(std::string{argv[1]});
+        if (argc > 3)
+            read_assemble_calc_post<float>(std::string{argv[1]}, true);
+        else
+            read_assemble_calc_post<float>(std::string{argv[1]}, false);
     }
     else
     {
         std::cout << "datatype is double" << std::endl;
-        read_assemble_calc_post<double>(std::string{argv[1]});
+        if (argc > 3)
+            read_assemble_calc_post<double>(std::string{argv[1]}, true);
+        else
+            read_assemble_calc_post<double>(std::string{argv[1]}, false);
     }
     return 0;
 }
 
 template<typename datatype>
-void read_assemble_calc_post(std::string filename)
+void read_assemble_calc_post(std::string filename, bool solve)
 {
     // TODO make something like this work to use user input
     //using datatype = ((argc > 2 && (std::string{argv[2]} == "float")) ? float : double);
     //using typelist[2] = {float, double};
+
     clock_t time[2];
+    double walltime[2];
     std::cout << ">- CPU: MESH FORMAT, Q2 -<" << std::endl;
     std::vector<Vertex<datatype>> nodes;
     std::vector<Element<datatype>*> elements;
@@ -60,15 +75,21 @@ void read_assemble_calc_post(std::string filename)
 
     std::cout << "structure" << std::flush;
     time[0] = clock();
+    walltime[0] = omp_get_wtime();
     CsrMatrixCpu<datatype> mat(nodes.size());
     structure(mat, elements);
+    walltime[0] -= omp_get_wtime();
     time[0] -= clock();
     std::cout << " - done (" << float(-time[0]) / CLOCKS_PER_SEC * 1000.0f << ")" << std::endl;
+    std::cout << " - done (" << -walltime[0] * 1000.0 << ")" << std::endl;
     std::cout << "assemble" << std::flush;
     time[1] = clock();
+    walltime[1] = omp_get_wtime();
     assemble(mat, elements);
+    walltime[1] -= omp_get_wtime();
     time[1] -= clock();
     std::cout << " - done (" << float(-time[1]) / CLOCKS_PER_SEC * 1000.0f << ")" << std::endl;
+    std::cout << " - done (" << -walltime[1] * 1000.0 << ")" << std::endl;
 
     // assemble rhs
     std::function<datatype(datatype, datatype)> f = [](datatype x, datatype y)
@@ -95,7 +116,9 @@ void read_assemble_calc_post(std::string filename)
         }
     }
 
-/*
+
+    if (solve)
+    {
     // solve LGS
     CgSolver<CsrMatrixCpu<datatype>, VectorCpu> solver(mat, rhs);
     VectorCpu res(numvertices, 0.1);
@@ -136,5 +159,5 @@ void read_assemble_calc_post(std::string filename)
     for (size_t i{0}; i < numvertices; ++i)
         output << (std::abs(res._values[i]) < 0.0001 ? 0 : res._values[i]) << std::endl;
     output.close();
-*/
+    }
 }

@@ -28,6 +28,7 @@ project (BACHELOR)
 
 #list(APPEND CMAKE_CXX_FLAGS "-std=c++11 -ffast-math -Wall")
 list(APPEND CMAKE_CXX_FLAGS "-std=c++11 -fopenmp -O3 -ffast-math -Wall")
+#list(APPEND CMAKE_CXX_FLAGS "-fopenmp")
 
 #list(APPEND CUDA_NVCC_FLAGS "-DVERBOSE")
 #LIST(APPEND CUDA_NVCC_FLAGS "--compiler-options -fno-strict-aliasing -lineinfo -use_fast_math -Xptxas -dlcm=cg")
@@ -38,6 +39,16 @@ list(APPEND CMAKE_CXX_FLAGS "-std=c++11 -fopenmp -O3 -ffast-math -Wall")
 #LIST(APPEND CUDA_NVCC_FLAGS "-gencode arch=compute_35,code=sm_35")
 #
 #set(CUDA_PROPAGATE_HOST_FLAGS OFF)
+
+find_package(OpenMP)
+#if (OPENMP_FOUND)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+    #list (APPEND CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+    #list (APPEND CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+#endif()
+#list(APPEND CMAKE_CXX_FLAGS "-DNDEBUG")
+#list(APPEND CMAKE_C_FLAGS "-DNDEBUG")
 
 ##################################################
 ###                                            ###
@@ -56,5 +67,5 @@ add_executable(convert "converter.cpp")
 target_link_libraries(convert GLOBLIB ) # CUDALIB ${MPI_LIBRARIES} ${CUDA_LIBRARIES})
 add_executable(example1 "example1.cpp")
 target_link_libraries(example1 GLOBLIB) # CUDALIB ${MPI_LIBRARIES} ${CUDA_LIBRARIES})
-add_executable(example "example.cpp")
-target_link_libraries(example GLOBLIB) # CUDALIB ${MPI_LIBRARIES} ${CUDA_LIBRARIES})
+add_executable(example "example.cpp"  )
+target_link_libraries(example GLOBLIB ) # CUDALIB ${MPI_LIBRARIES} ${CUDA_LIBRARIES})

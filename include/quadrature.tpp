@@ -25,7 +25,7 @@ const datatype Quadrature<elemtype, datatype>::integrate_laplace(const unsigned 
             grad2 = _element->gradient_ref(secondbf, 1.0/3.0, 1.0/3.0);
             res = (B_inv_t[0][0] * grad1[0] + B_inv_t[0][1] * grad1[1]) * (B_inv_t[0][0] * grad2[0] + B_inv_t[0][1] * grad2[1])
                 + (B_inv_t[1][0] * grad1[0] + B_inv_t[1][1] * grad1[1]) * (B_inv_t[1][0] * grad2[0] + B_inv_t[1][1] * grad2[1]);
-            res *= detB / static_cast<datatype>(2.0); // 1/2 is the size of the referenceelement
+            res *= detB / static_cast<datatype>(2.0); // 1/2 is the weight
             break;
         case 2:
             grad1 = _element->gradient_ref(firstbf, 0.0, 0.5);
@@ -40,7 +40,7 @@ const datatype Quadrature<elemtype, datatype>::integrate_laplace(const unsigned 
             grad2 = _element->gradient_ref(secondbf, 0.5, 0.5);
             res += (B_inv_t[0][0] * grad1[0] + B_inv_t[0][1] * grad1[1]) * (B_inv_t[0][0] * grad2[0] + B_inv_t[0][1] * grad2[1])
                  + (B_inv_t[1][0] * grad1[0] + B_inv_t[1][1] * grad1[1]) * (B_inv_t[1][0] * grad2[0] + B_inv_t[1][1] * grad2[1]);
-            res *= detB / static_cast<datatype>(6.0); // 1/3 is weight of all points; 1/2 is the size of the referenceelement
+            res *= detB / static_cast<datatype>(6.0); // 1/6 is weight of all points
             break;
         default:
             assert(false);

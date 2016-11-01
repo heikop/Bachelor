@@ -145,6 +145,8 @@ void CsrMatrixCpu<datatype>::add(const size_t row, const size_t col, const datat
     while (_colind[pos_to_insert] < col && pos_to_insert < _rowptr[row+1])
         ++pos_to_insert;
     assert(_colind[pos_to_insert] == col);// && pos_to_insert < _rowptr[row+1]);
+
+    #pragma omp atomic
     _values[pos_to_insert] += val;
 }
 
