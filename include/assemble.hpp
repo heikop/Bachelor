@@ -13,19 +13,6 @@
 template<template<typename> class elemtype, typename datatype>
 void assemble(CsrMatrixCpu<datatype>& matrix, std::vector<elemtype<datatype>*>& elements)
 {
-/*
-    for (const auto& elem : elements)
-    {
-        const std::vector<size_t> vertexids{elem->vertexids()};
-        Quadrature<elemtype, datatype> quad(elem);
-        for (size_t i{0}; i < vertexids.size(); ++i)
-            for (size_t j{0}; j < vertexids.size(); ++j)
-//                matrix.add(vertexids[i], vertexids[j], quad.integrate_laplace(2, i, j));
-                matrix.add(vertexids[i], vertexids[j], quad.integrate_laplace(3, i, j));
-//                matrix.add(vertexids[i], vertexids[j], quad.integrate_laplace(4, i, j));
-    }
-*/
-
     #pragma omp parallel for
     for (int e=0; e < static_cast<int>(elements.size()); e++)
     {
@@ -35,7 +22,6 @@ void assemble(CsrMatrixCpu<datatype>& matrix, std::vector<elemtype<datatype>*>& 
             for (size_t j{0}; j < vertexids.size(); ++j)
 //                matrix.add(vertexids[i], vertexids[j], quad.integrate_laplace(2, i, j));
                 matrix.add(vertexids[i], vertexids[j], quad.integrate_laplace(3, i, j));
-//                quad.integrate_laplace(3, i, j);
 //                matrix.add(vertexids[i], vertexids[j], quad.integrate_laplace(4, i, j));
     }
 }

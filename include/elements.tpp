@@ -64,13 +64,8 @@ datatype LineQ2<datatype>::derivate_ref(const unsigned int basis_function,
 template<typename datatype>
 const std::array<std::array<datatype, 2>, 2> Triangle<datatype>::transformation_matrix() const
 {
-    //return {_p1.x - _p0.x, _p2.x - _p0.x,
-    //        _p1.y - _p0.y, _p2.y - _p0.y};
-    std::array<std::array<datatype, 2>, 2> res;
-    res[0][0] = _p1.x - _p0.x; res[0][1] = _p2.x - _p0.x;
-    res[1][0] = _p1.y - _p0.y; res[1][1] = _p2.y - _p0.y;
-    return res;
-    // TODO change back
+    return {_p1.x - _p0.x, _p2.x - _p0.x,
+            _p1.y - _p0.y, _p2.y - _p0.y};
 }
 
 // ***** // ***** TriangleQ1 ***** // ***** //

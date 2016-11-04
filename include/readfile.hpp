@@ -150,4 +150,25 @@ void file_to_mesh_all(string filename, std::vector<Vertex<datatype>>& vertices, 
     elements.shrink_to_fit();
 }
 
+
+template<typename datatype>
+void quad_to_tri(std::vector<Vertex<datatype>>& vertices, std::vector<Element<datatype>*>& elements)
+{
+    size_t num_quads{elements.size()};
+    for (size_t e{0}; e < num_quads; ++e)
+    {
+        if (typeid(*(elements[e])) == typeid(QuadrilateralQ1<datatype>))
+        {
+            const std::vector<size_t> vertexids{elements[e]->vertexids()};
+            delete elements[e];
+            elements[e] = new TriangleQ1<datatype>(vertices[vertexids[0]], vertices[vertexids[1]], vertices[vertexids[2]]);
+            elements.push_back( new TriangleQ1<datatype>(vertices[vertexids[2]], vertices[vertexids[3]], vertices[vertexids[0]]) );
+        }
+        else if (typeid(*(elements[e])) == typeid(QuadrilateralQ2<datatype>))
+        {
+            //TODO
+        }
+    }
+}
+
 #endif

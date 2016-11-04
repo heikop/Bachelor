@@ -70,6 +70,7 @@ void read_assemble_calc_post(std::string filename, bool solve)
 
     //file_to_mesh(filename, nodes, elements);
     file_to_mesh_all(filename, nodes, elements);
+//    quad_to_tri(nodes, elements);
     std::cout << "num nodes: " << nodes.size() << std::endl;
     std::cout << "num elements: " << elements.size() << std::endl;
 
@@ -135,20 +136,20 @@ void read_assemble_calc_post(std::string filename, bool solve)
     for (const auto& n : nodes)
         output << n.x << " " << n.y << " 0" << std::endl;
     output << std::endl;
-    //output << "CELLS " << elements.size() << " " << 4*elements.size() << std::endl;
+//    output << "CELLS " << elements.size() << " " << 4*elements.size() << std::endl;
     output << "CELLS " << elements.size() << " " << 5*elements.size() << std::endl;
     for (const auto& e : elements)
     {
         //for (const auto id : e->vertexids())
             //TODO
-    //    output << "3 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << std::endl;
+//        output << "3 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << std::endl;
         output << "4 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << " " << e->vertexids()[3] << std::endl;
     }
     output << std::endl;
     output << "CELL_TYPES " << elements.size() << std::endl;
     for (size_t i{0}; i < elements.size(); ++i)
     //if (typeid(*_element) == typeid(TriangleQ1<datatype>)
-    //    output << "5" << std::endl; // TriangleQ1
+//        output << "5" << std::endl; // TriangleQ1
         //output << "22" << std::endl; // TriangleQ2
         output << "9" << std::endl; // QuadrilateralQ1
         //output << "23" << std::endl; // QuadrilateralQ2

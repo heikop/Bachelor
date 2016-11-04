@@ -42,6 +42,7 @@ public:
     virtual const datatype trafo_determinant(const datatype xi,
                                              const datatype eta) const;
 
+    virtual ~Element() { }
 protected:
     const unsigned int _dimension;
     const unsigned int _degree;
