@@ -28,6 +28,7 @@ const datatype Quadrature<elemtype, datatype>::integrate_laplace(const unsigned 
             res *= detB / static_cast<datatype>(2.0); // 1/2 is the weight
             break;
         case 2:
+        case 3: //TODO TOREMOVE just for convenience
             grad1 = _element->gradient_ref(firstbf, 0.0, 0.5);
             grad2 = _element->gradient_ref(secondbf, 0.0, 0.5);
             res  = (B_inv_t[0][0] * grad1[0] + B_inv_t[0][1] * grad1[1]) * (B_inv_t[0][0] * grad2[0] + B_inv_t[0][1] * grad2[1])
@@ -199,6 +200,7 @@ const datatype Quadrature<elemtype, datatype>::integrate_basisfunction(const uns
             res *= detB / static_cast<datatype>(2.0); // 1/2 is the size of the referenceelement
             break;
         case 2:
+        case 3: //TODO TOREMOVE just for convenience
             res = _element->evaluate_ref(basisfunction, 0.0, 0.5)
                 + _element->evaluate_ref(basisfunction, 0.5, 0.0)
                 + _element->evaluate_ref(basisfunction, 0.5, 0.5);
@@ -228,15 +230,15 @@ const datatype Quadrature<elemtype, datatype>::integrate_basisfunction(const uns
             break; }
         case 3:
         {   datatype qp{std::sqrt(static_cast<datatype>(3.0/5.0))};
-            res = static_cast<datatype>(25) /* _element->trafo_determinant(-qp, -qp) */* _element->evaluate_ref(basisfunction, -qp, -qp)
-                + static_cast<datatype>(40) /* _element->trafo_determinant(-qp,   0) */* _element->evaluate_ref(basisfunction, -qp, static_cast<datatype>(0))
-                + static_cast<datatype>(25) /* _element->trafo_determinant(-qp,  qp) */* _element->evaluate_ref(basisfunction, -qp, qp)
-                + static_cast<datatype>(40) /* _element->trafo_determinant(  0, -qp) */* _element->evaluate_ref(basisfunction, static_cast<datatype>(0), -qp)
-                + static_cast<datatype>(64) /* _element->trafo_determinant(  0,   0) */* _element->evaluate_ref(basisfunction, static_cast<datatype>(0), static_cast<datatype>(0))
-                + static_cast<datatype>(40) /* _element->trafo_determinant(  0,  qp) */* _element->evaluate_ref(basisfunction, static_cast<datatype>(0), qp)
-                + static_cast<datatype>(25) /* _element->trafo_determinant( qp, -qp) */* _element->evaluate_ref(basisfunction, qp, -qp)
-                + static_cast<datatype>(40) /* _element->trafo_determinant( qp,   0) */* _element->evaluate_ref(basisfunction, qp, static_cast<datatype>(0))
-                + static_cast<datatype>(25) /* _element->trafo_determinant( qp,  qp) */* _element->evaluate_ref(basisfunction, qp, qp);
+            res = static_cast<datatype>(25) * _element->evaluate_ref(basisfunction, -qp, -qp)
+                + static_cast<datatype>(40) * _element->evaluate_ref(basisfunction, -qp, static_cast<datatype>(0))
+                + static_cast<datatype>(25) * _element->evaluate_ref(basisfunction, -qp, qp)
+                + static_cast<datatype>(40) * _element->evaluate_ref(basisfunction, static_cast<datatype>(0), -qp)
+                + static_cast<datatype>(64) * _element->evaluate_ref(basisfunction, static_cast<datatype>(0), static_cast<datatype>(0))
+                + static_cast<datatype>(40) * _element->evaluate_ref(basisfunction, static_cast<datatype>(0), qp)
+                + static_cast<datatype>(25) * _element->evaluate_ref(basisfunction, qp, -qp)
+                + static_cast<datatype>(40) * _element->evaluate_ref(basisfunction, qp, static_cast<datatype>(0))
+                + static_cast<datatype>(25) * _element->evaluate_ref(basisfunction, qp, qp);
             res /= static_cast<datatype>(81); // all weights are .../81
             break; }
         default:

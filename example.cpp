@@ -1,7 +1,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <ctime>
 #include <cmath>
 #include <typeinfo>
 #include <functional>
@@ -18,6 +17,9 @@
 
 #include <omp.h>
 #include <stdio.h>
+
+#define NUMOUTERRUNS 3
+#define NUMINNERRUNS 30
 
 using namespace std;
 
@@ -62,8 +64,8 @@ void read_assemble_calc_post(std::string filename, bool solve)
     //using datatype = ((argc > 2 && (std::string{argv[2]} == "float")) ? float : double);
     //using typelist[2] = {float, double};
 
-    clock_t time[2];
-    double walltime[2];
+    //double walltime[2];
+    double walltime[NUMOUTERRUNS][NUMINNERRUNS+10];
     std::cout << ">- CPU: MESH FORMAT, Q2 -<" << std::endl;
     std::vector<Vertex<datatype>> nodes;
     std::vector<Element<datatype>*> elements;
@@ -74,23 +76,28 @@ void read_assemble_calc_post(std::string filename, bool solve)
     std::cout << "num nodes: " << nodes.size() << std::endl;
     std::cout << "num elements: " << elements.size() << std::endl;
 
-    std::cout << "structure" << std::flush;
-    time[0] = clock();
-    walltime[0] = omp_get_wtime();
     CsrMatrixCpu<datatype> mat(nodes.size());
-    structure(mat, elements);
-    walltime[0] -= omp_get_wtime();
-    time[0] -= clock();
-    std::cout << " - done (" << float(-time[0]) / CLOCKS_PER_SEC * 1000.0f << ")" << std::endl;
-    std::cout << " - done (" << -walltime[0] * 1000.0 << ")" << std::endl;
-    std::cout << "assemble" << std::flush;
-    time[1] = clock();
-    walltime[1] = omp_get_wtime();
-    assemble(mat, elements);
-    walltime[1] -= omp_get_wtime();
-    time[1] -= clock();
-    std::cout << " - done (" << float(-time[1]) / CLOCKS_PER_SEC * 1000.0f << ")" << std::endl;
-    std::cout << " - done (" << -walltime[1] * 1000.0 << ")" << std::endl;
+    for (size_t outer{0}; outer < NUMOUTERRUNS; ++outer)
+    {
+        std::cout << "===== ===== RUN " << outer + 1 << " ===== =====" << std::endl;
+        std::cout << "structure" << std::flush;
+        walltime[outer][0] = omp_get_wtime();
+        structure(mat, elements);
+        walltime[outer][0] -= omp_get_wtime();
+        std::cout << " - done (" << -walltime[outer][0] * 1000.0 << ")" << std::endl;
+        std::cout << "assemble" << std::flush;
+        for (size_t inner{0}; inner < NUMINNERRUNS+10; ++inner) // puffer of 5 at the beginning and end
+        {
+            walltime[outer][inner] = omp_get_wtime();
+            assemble(mat, elements);
+            walltime[outer][inner] -= omp_get_wtime();
+            std::cout << " - done (" << -walltime[outer][inner] * 1000.0 << ")" << std::endl;
+        }
+        double avg{0.0};
+        for (size_t inner{5}; inner < NUMINNERRUNS+5; ++inner) // dont add puffer runs
+            avg -= walltime[outer][inner];
+        std::cout << ">>>>> average of run " << outer + 1 << ": " << avg * 1000.0 / static_cast<double>(NUMINNERRUNS) << "ms" << std::endl;
+    }
 
     // assemble rhs
     std::function<datatype(datatype, datatype)> f = [](datatype x, datatype y)
@@ -121,10 +128,13 @@ void read_assemble_calc_post(std::string filename, bool solve)
     if (solve)
     {
     // solve LGS
+    std::cout << "solve" << std::flush;
     CgSolver<CsrMatrixCpu<datatype>, VectorCpu> solver(mat, rhs);
     VectorCpu res(numvertices, 0.1);
     solver.solve(res);
+    std::cout << " - done" << std::endl;
 
+    bool triangles_used = true; // false -> quadrilaterals
     // write vtk-file
     ofstream output("../data/square_q2.vtk");
     output << "# vtk DataFile Version 3.0" << std::endl;
@@ -136,23 +146,38 @@ void read_assemble_calc_post(std::string filename, bool solve)
     for (const auto& n : nodes)
         output << n.x << " " << n.y << " 0" << std::endl;
     output << std::endl;
-//    output << "CELLS " << elements.size() << " " << 4*elements.size() << std::endl;
-    output << "CELLS " << elements.size() << " " << 5*elements.size() << std::endl;
+    if (triangles_used) // bad style
+        output << "CELLS " << elements.size() << " " << 4*elements.size() << std::endl;
+    else
+        output << "CELLS " << elements.size() << " " << 5*elements.size() << std::endl;
     for (const auto& e : elements)
     {
         //for (const auto id : e->vertexids())
             //TODO
-//        output << "3 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << std::endl;
-        output << "4 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << " " << e->vertexids()[3] << std::endl;
+        if (typeid(*e) == typeid(TriangleQ1<datatype>)
+         || typeid(*e) == typeid(TriangleQ2<datatype>) )
+            output << "3 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << std::endl;
+        else if (typeid(*e) == typeid(QuadrilateralQ1<datatype>)
+              || typeid(*e) == typeid(QuadrilateralQ2<datatype>) )
+            output << "4 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << " " << e->vertexids()[3] << std::endl;
+        else
+            assert(false);
     }
     output << std::endl;
     output << "CELL_TYPES " << elements.size() << std::endl;
     for (size_t i{0}; i < elements.size(); ++i)
-    //if (typeid(*_element) == typeid(TriangleQ1<datatype>)
-//        output << "5" << std::endl; // TriangleQ1
+    {
+        if (typeid(*(elements[i])) == typeid(TriangleQ1<datatype>)
+         || typeid(*(elements[i])) == typeid(TriangleQ2<datatype>) )
+            output << "5" << std::endl; // TriangleQ1
         //output << "22" << std::endl; // TriangleQ2
-        output << "9" << std::endl; // QuadrilateralQ1
+        else if (typeid(*(elements[i])) == typeid(QuadrilateralQ1<datatype>)
+              || typeid(*(elements[i])) == typeid(QuadrilateralQ2<datatype>) )
+            output << "9" << std::endl; // QuadrilateralQ1
         //output << "23" << std::endl; // QuadrilateralQ2
+        else
+            assert(false);
+    }
     output << std::endl;
     output << "POINT_DATA " << numvertices << std::endl;
     output << "SCALARS u " << (typeid(datatype) == typeid(float) ? "float" : "double") << std::endl;
