@@ -297,7 +297,7 @@ public:
     }
     const std::array<std::array<datatype, 2>, 2> transformation_matrix() const {assert(false);} //TODO
 
-protected:
+//protected:
     const Vertex<datatype> _p0, _p1, _p2, _p3;
 };
 
