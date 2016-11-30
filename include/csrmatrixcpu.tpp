@@ -141,13 +141,13 @@ template <typename datatype>
 void CsrMatrixCpu<datatype>::add(const size_t row, const size_t col, const datatype val)
 {
     assert(row < _numrows && col < _numcols);
-    size_t pos_to_insert(_rowptr[row]);
-    while (_colind[pos_to_insert] < col && pos_to_insert < _rowptr[row+1])
-        ++pos_to_insert;
-    assert(_colind[pos_to_insert] == col);// && pos_to_insert < _rowptr[row+1]);
+//    size_t pos_to_insert(_rowptr[row]);
+//    while (_colind[pos_to_insert] < col && pos_to_insert < _rowptr[row+1])
+//        ++pos_to_insert;
+//    assert(_colind[pos_to_insert] == col);// && pos_to_insert < _rowptr[row+1]);
 
-    #pragma omp atomic
-    _values[pos_to_insert] += val;
+//    #pragma omp atomic
+//    _values[pos_to_insert] += val;
 }
 
 //template <typename datatype>

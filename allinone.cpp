@@ -38,383 +38,81 @@ int main(int argc, char* argv[])
     std::cout << " - done (" << -walltime[0] * 1000.0 << ")" << std::endl;
     std::cout << "assemble" << std::flush;
     walltime[1] = omp_get_wtime();
+
+    double qp{std::sqrt(0.6)};
+    double weight[9] = {25.0, 40.0, 25.0,
+                        40.0, 64.0, 40.0,
+                        25.0, 40.0, 25.0};
+    double quadpoint[9][2] = {{-qp, -qp},
+                              {-qp, 0.0},
+                              {-qp,  qp},
+                              {0.0, -qp},
+                              {0.0, 0.0},
+                              {0.0,  qp},
+                              { qp, -qp},
+                              { qp, 0.0},
+                              { qp,  qp}};
     // function begin: assemble
-    #pragma omp parallel for
+    //#pragma omp parallel for
     for (int e=0; e < static_cast<int>(elements.size()); e++)
     {
-        const std::vector<size_t> vertexids{elements[e]->vertexids()};
-        QuadrilateralQ1<double>* currentelem = static_cast<QuadrilateralQ1<double>*>(elements[e]);
+        const std::vector<size_t> vertexids{elements[e]->vertexids()}; // only needed for vertexids.size() -> always known (=8)
+        std::array<double, 8> coords = static_cast<QuadrilateralQ1<double>*>(elements[e])->get_pointcoords();
         for (size_t i{0}; i < vertexids.size(); ++i)
         {
             for (size_t j{0}; j < vertexids.size(); ++j)
             {
                 double val{0.0};
 
-                std::array<double, 2> grad1;
-                std::array<double, 2> grad2;
+                for (size_t p{0}; p < 9; ++p)
+                {
+                    double xi  = quadpoint[p][0];
+                    double eta = quadpoint[p][1];
+                    double B[2][2] =
+                    //    { { ( -(1.0-eta)*coords[0] + (1.0-eta)*coords[1] + (1.0+eta)*coords[2] - (1.0+eta)*coords[3] ) * 0.25 ,
+                    //        ( -(1.0-xi )*coords[0] - (1.0+xi )*coords[1] + (1.0+xi )*coords[2] + (1.0-xi )*coords[3] ) * 0.25 },
+                    //      { ( -(1.0-eta)*coords[4] + (1.0-eta)*coords[5] + (1.0+eta)*coords[6] - (1.0+eta)*coords[7] ) * 0.25 ,
+                    //        ( -(1.0-xi )*coords[4] - (1.0+xi )*coords[5] + (1.0+xi )*coords[6] + (1.0-xi )*coords[7] ) * 0.25 } };
+                        { { ( (eta-1.0)*coords[0] + (1.0-eta)*coords[1] + (1.0+eta)*coords[2] + (eta-1.0)*coords[3] ) * 0.25 ,
+                            ( (xi -1.0)*coords[0] + (xi -1.0)*coords[1] + (1.0+xi )*coords[2] + (1.0-xi )*coords[3] ) * 0.25 },
+                          { ( (eta-1.0)*coords[4] + (1.0-eta)*coords[5] + (1.0+eta)*coords[6] + (eta-1.0)*coords[7] ) * 0.25 ,
+                            ( (xi -1.0)*coords[4] + (xi -1.0)*coords[5] + (1.0+xi )*coords[6] + (1.0-xi )*coords[7] ) * 0.25 } };
 
-                double qp{std::sqrt(static_cast<double>(3.0/5.0))};
+                    // help vars
+                    std::array<double, 2> grad1;
+                    std::array<double, 2> grad2;
+                    if (i == 0)
+                        grad1 = {(1.0 - eta) * (-0.25) ,
+                                 (1.0 - xi ) * (-0.25) };
+                    else if (i == 1)
+                        grad1 = {(1.0 - eta) *   0.25 ,
+                                 (1.0 + xi ) * (-0.25) };
+                    else if (i == 2)
+                        grad1 = {(1.0 + eta) *   0.25 ,
+                                 (1.0 + xi ) *   0.25 };
+                    else //if (i == 3)
+                        grad1 = {(1.0 + eta) * (-0.25) ,
+                                 (1.0 - xi ) *   0.25 };
+                    if (j == 0)
+                        grad2 = {(1.0 - eta) * (-0.25) ,
+                                 (1.0 - xi ) * (-0.25) };
+                    else if (j == 1)
+                        grad2 = {(1.0 - eta) *   0.25 ,
+                                 (1.0 + xi ) * (-0.25) };
+                    else if (j == 2)
+                        grad2 = {(1.0 + eta) *   0.25 ,
+                                 (1.0 + xi ) *   0.25 };
+                    else //if (j == 3)
+                        grad2 = {(1.0 + eta) * (-0.25) ,
+                                 (1.0 - xi ) *   0.25 };
 
-                // help vars
-                std::array<std::array<double, 2>, 2> B;
-                double xi, eta;
-                std::array<double, 2> grad;
-                double detB;
-                std::array<std::array<double, 2>, 2> B_inv_t;
-
-                // QP 1
-                xi = -qp; eta = -qp;
-                B[0][0] = ( -(1.0-eta)*currentelem->_p0.x + (1.0-eta)*currentelem->_p1.x + (1.0+eta)*currentelem->_p2.x - (1.0+eta)*currentelem->_p3.x ) * 0.25;
-                B[0][1] = ( -(1.0-xi )*currentelem->_p0.x - (1.0+xi )*currentelem->_p1.x + (1.0+xi )*currentelem->_p2.x + (1.0-xi )*currentelem->_p3.x ) * 0.25;
-                B[1][0] = ( -(1.0-eta)*currentelem->_p0.y + (1.0-eta)*currentelem->_p1.y + (1.0+eta)*currentelem->_p2.y - (1.0+eta)*currentelem->_p3.y ) * 0.25;
-                B[1][1] = ( -(1.0-xi )*currentelem->_p0.y - (1.0+xi )*currentelem->_p1.y + (1.0+xi )*currentelem->_p2.y + (1.0-xi )*currentelem->_p3.y ) * 0.25;
-                detB = std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0]);
-                B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
-                B_inv_t[1][0] = -B[0][1] / detB; B_inv_t[1][1] =  B[0][0] / detB;
-                if (i == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (i == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (i == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (i == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad1 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                if (j == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (j == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (j == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (j == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad2 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                val   = 25.0 * (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * detB;//* elements->trafo_determinant(-qp, -qp);
-
-                // QP 2
-                xi = -qp; eta = 0.0;
-                B[0][0] = ( -(1.0-eta)*currentelem->_p0.x + (1.0-eta)*currentelem->_p1.x + (1.0+eta)*currentelem->_p2.x - (1.0+eta)*currentelem->_p3.x ) * 0.25;
-                B[0][1] = ( -(1.0-xi )*currentelem->_p0.x - (1.0+xi )*currentelem->_p1.x + (1.0+xi )*currentelem->_p2.x + (1.0-xi )*currentelem->_p3.x ) * 0.25;
-                B[1][0] = ( -(1.0-eta)*currentelem->_p0.y + (1.0-eta)*currentelem->_p1.y + (1.0+eta)*currentelem->_p2.y - (1.0+eta)*currentelem->_p3.y ) * 0.25;
-                B[1][1] = ( -(1.0-xi )*currentelem->_p0.y - (1.0+xi )*currentelem->_p1.y + (1.0+xi )*currentelem->_p2.y + (1.0-xi )*currentelem->_p3.y ) * 0.25;
-                detB = std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0]);
-                B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
-                B_inv_t[1][0] = -B[0][1] / detB; B_inv_t[1][1] =  B[0][0] / detB;
-                if (i == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (i == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (i == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (i == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad1 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                if (j == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (j == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (j == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (j == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad2 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                val  += 40.0 * (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * detB;//* elements->trafo_determinant(-qp, 0);
-
-                // QP 3
-                xi = -qp; eta = qp;
-                B[0][0] = ( -(1.0-eta)*currentelem->_p0.x + (1.0-eta)*currentelem->_p1.x + (1.0+eta)*currentelem->_p2.x - (1.0+eta)*currentelem->_p3.x ) * 0.25;
-                B[0][1] = ( -(1.0-xi )*currentelem->_p0.x - (1.0+xi )*currentelem->_p1.x + (1.0+xi )*currentelem->_p2.x + (1.0-xi )*currentelem->_p3.x ) * 0.25;
-                B[1][0] = ( -(1.0-eta)*currentelem->_p0.y + (1.0-eta)*currentelem->_p1.y + (1.0+eta)*currentelem->_p2.y - (1.0+eta)*currentelem->_p3.y ) * 0.25;
-                B[1][1] = ( -(1.0-xi )*currentelem->_p0.y - (1.0+xi )*currentelem->_p1.y + (1.0+xi )*currentelem->_p2.y + (1.0-xi )*currentelem->_p3.y ) * 0.25;
-                detB = std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0]);
-                B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
-                B_inv_t[1][0] = -B[0][1] / detB; B_inv_t[1][1] =  B[0][0] / detB;
-                if (i == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (i == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (i == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (i == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad1 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                if (j == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (j == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (j == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (j == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad2 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                val  += 25.0 * (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * detB;//* elements->trafo_determinant(-qp, qp);
-
-                // QP 4
-                xi = 0.0; eta = -qp;
-                B[0][0] = ( -(1.0-eta)*currentelem->_p0.x + (1.0-eta)*currentelem->_p1.x + (1.0+eta)*currentelem->_p2.x - (1.0+eta)*currentelem->_p3.x ) * 0.25;
-                B[0][1] = ( -(1.0-xi )*currentelem->_p0.x - (1.0+xi )*currentelem->_p1.x + (1.0+xi )*currentelem->_p2.x + (1.0-xi )*currentelem->_p3.x ) * 0.25;
-                B[1][0] = ( -(1.0-eta)*currentelem->_p0.y + (1.0-eta)*currentelem->_p1.y + (1.0+eta)*currentelem->_p2.y - (1.0+eta)*currentelem->_p3.y ) * 0.25;
-                B[1][1] = ( -(1.0-xi )*currentelem->_p0.y - (1.0+xi )*currentelem->_p1.y + (1.0+xi )*currentelem->_p2.y + (1.0-xi )*currentelem->_p3.y ) * 0.25;
-                detB = std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0]);
-                B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
-                B_inv_t[1][0] = -B[0][1] / detB; B_inv_t[1][1] =  B[0][0] / detB;
-                if (i == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (i == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (i == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (i == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad1 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                if (j == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (j == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (j == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (j == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad2 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                val  += 40.0 * (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * detB;//* elements->trafo_determinant(0, -qp);
-
-                // QP 5
-                xi = 0.0; eta = 0.0;
-                B[0][0] = ( -(1.0-eta)*currentelem->_p0.x + (1.0-eta)*currentelem->_p1.x + (1.0+eta)*currentelem->_p2.x - (1.0+eta)*currentelem->_p3.x ) * 0.25;
-                B[0][1] = ( -(1.0-xi )*currentelem->_p0.x - (1.0+xi )*currentelem->_p1.x + (1.0+xi )*currentelem->_p2.x + (1.0-xi )*currentelem->_p3.x ) * 0.25;
-                B[1][0] = ( -(1.0-eta)*currentelem->_p0.y + (1.0-eta)*currentelem->_p1.y + (1.0+eta)*currentelem->_p2.y - (1.0+eta)*currentelem->_p3.y ) * 0.25;
-                B[1][1] = ( -(1.0-xi )*currentelem->_p0.y - (1.0+xi )*currentelem->_p1.y + (1.0+xi )*currentelem->_p2.y + (1.0-xi )*currentelem->_p3.y ) * 0.25;
-                detB = std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0]);
-                B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
-                B_inv_t[1][0] = -B[0][1] / detB; B_inv_t[1][1] =  B[0][0] / detB;
-                if (i == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (i == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (i == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (i == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad1 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                if (j == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (j == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (j == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (j == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad2 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                val  += 64.0 * (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * detB;//* elements->trafo_determinant(0, 0);
-
-                // QP 6
-                xi = 0.0; eta = qp;
-                B[0][0] = ( -(1.0-eta)*currentelem->_p0.x + (1.0-eta)*currentelem->_p1.x + (1.0+eta)*currentelem->_p2.x - (1.0+eta)*currentelem->_p3.x ) * 0.25;
-                B[0][1] = ( -(1.0-xi )*currentelem->_p0.x - (1.0+xi )*currentelem->_p1.x + (1.0+xi )*currentelem->_p2.x + (1.0-xi )*currentelem->_p3.x ) * 0.25;
-                B[1][0] = ( -(1.0-eta)*currentelem->_p0.y + (1.0-eta)*currentelem->_p1.y + (1.0+eta)*currentelem->_p2.y - (1.0+eta)*currentelem->_p3.y ) * 0.25;
-                B[1][1] = ( -(1.0-xi )*currentelem->_p0.y - (1.0+xi )*currentelem->_p1.y + (1.0+xi )*currentelem->_p2.y + (1.0-xi )*currentelem->_p3.y ) * 0.25;
-                detB = std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0]);
-                B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
-                B_inv_t[1][0] = -B[0][1] / detB; B_inv_t[1][1] =  B[0][0] / detB;
-                if (i == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (i == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (i == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (i == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad1 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                if (j == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (j == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (j == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (j == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad2 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                val  += 40.0 * (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * detB;//* elements->trafo_determinant(0, qp);
-
-                // QP 7
-                xi = qp; eta = -qp;
-                B[0][0] = ( -(1.0-eta)*currentelem->_p0.x + (1.0-eta)*currentelem->_p1.x + (1.0+eta)*currentelem->_p2.x - (1.0+eta)*currentelem->_p3.x ) * 0.25;
-                B[0][1] = ( -(1.0-xi )*currentelem->_p0.x - (1.0+xi )*currentelem->_p1.x + (1.0+xi )*currentelem->_p2.x + (1.0-xi )*currentelem->_p3.x ) * 0.25;
-                B[1][0] = ( -(1.0-eta)*currentelem->_p0.y + (1.0-eta)*currentelem->_p1.y + (1.0+eta)*currentelem->_p2.y - (1.0+eta)*currentelem->_p3.y ) * 0.25;
-                B[1][1] = ( -(1.0-xi )*currentelem->_p0.y - (1.0+xi )*currentelem->_p1.y + (1.0+xi )*currentelem->_p2.y + (1.0-xi )*currentelem->_p3.y ) * 0.25;
-                detB = std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0]);
-                B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
-                B_inv_t[1][0] = -B[0][1] / detB; B_inv_t[1][1] =  B[0][0] / detB;
-                if (i == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (i == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (i == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (i == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad1 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                if (j == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (j == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (j == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (j == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad2 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                val  += 25.0 * (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * detB;//* elements->trafo_determinant(qp, -qp);
-
-                // QP 8
-                xi = qp; eta = 0.0;
-                B[0][0] = ( -(1.0-eta)*currentelem->_p0.x + (1.0-eta)*currentelem->_p1.x + (1.0+eta)*currentelem->_p2.x - (1.0+eta)*currentelem->_p3.x ) * 0.25;
-                B[0][1] = ( -(1.0-xi )*currentelem->_p0.x - (1.0+xi )*currentelem->_p1.x + (1.0+xi )*currentelem->_p2.x + (1.0-xi )*currentelem->_p3.x ) * 0.25;
-                B[1][0] = ( -(1.0-eta)*currentelem->_p0.y + (1.0-eta)*currentelem->_p1.y + (1.0+eta)*currentelem->_p2.y - (1.0+eta)*currentelem->_p3.y ) * 0.25;
-                B[1][1] = ( -(1.0-xi )*currentelem->_p0.y - (1.0+xi )*currentelem->_p1.y + (1.0+xi )*currentelem->_p2.y + (1.0-xi )*currentelem->_p3.y ) * 0.25;
-                detB = std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0]);
-                B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
-                B_inv_t[1][0] = -B[0][1] / detB; B_inv_t[1][1] =  B[0][0] / detB;
-                if (i == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (i == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (i == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (i == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad1 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                if (j == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (j == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (j == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (j == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad2 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                val  += 40.0 * (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * detB;//* elements->trafo_determinant(qp, 0);
-
-                // QP 9
-                xi = qp; eta = qp;
-                B[0][0] = ( -(1.0-eta)*currentelem->_p0.x + (1.0-eta)*currentelem->_p1.x + (1.0+eta)*currentelem->_p2.x - (1.0+eta)*currentelem->_p3.x ) * 0.25;
-                B[0][1] = ( -(1.0-xi )*currentelem->_p0.x - (1.0+xi )*currentelem->_p1.x + (1.0+xi )*currentelem->_p2.x + (1.0-xi )*currentelem->_p3.x ) * 0.25;
-                B[1][0] = ( -(1.0-eta)*currentelem->_p0.y + (1.0-eta)*currentelem->_p1.y + (1.0+eta)*currentelem->_p2.y - (1.0+eta)*currentelem->_p3.y ) * 0.25;
-                B[1][1] = ( -(1.0-xi )*currentelem->_p0.y - (1.0+xi )*currentelem->_p1.y + (1.0+xi )*currentelem->_p2.y + (1.0-xi )*currentelem->_p3.y ) * 0.25;
-                detB = std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0]);
-                B_inv_t[0][0] =  B[1][1] / detB; B_inv_t[0][1] = -B[1][0] / detB;
-                B_inv_t[1][0] = -B[0][1] / detB; B_inv_t[1][1] =  B[0][0] / detB;
-                if (i == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (i == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (i == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (i == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad1 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                if (j == 0)
-                    grad = {(1.0 - eta) * (-0.25) ,
-                            (1.0 - xi ) * (-0.25) };
-                else if (j == 1)
-                    grad = {(1.0 - eta) *   0.25 ,
-                            (1.0 + xi ) * (-0.25) };
-                else if (j == 2)
-                    grad = {(1.0 + eta) *   0.25 ,
-                            (1.0 + xi ) *   0.25 };
-                else //if (j == 3)
-                    grad = {(1.0 + eta) * (-0.25) ,
-                            (1.0 - xi ) *   0.25 };
-                grad2 = {(B_inv_t[0][0] * grad[0] + B_inv_t[0][1] * grad[1]),
-                         (B_inv_t[1][0] * grad[0] + B_inv_t[1][1] * grad[1])};
-                val  += 25.0 * (grad1[0] * grad2[0] + grad1[1] * grad2[1]) * detB;//* elements->trafo_determinant(qp, qp);
-
+                    val  += weight[p]
+                            * (   ( B[1][1] * grad1[0] - B[1][0] * grad1[1]) * ( B[1][1] * grad2[0] - B[1][0] * grad2[1])
+                                + (-B[0][1] * grad1[0] + B[0][0] * grad1[1]) * (-B[0][1] * grad2[0] + B[0][0] * grad2[1]) )
+                            / std::abs(B[0][0] * B[1][1] - B[0][1] * B[1][0]);
+                } // end for p (quadrature point)
                 val /= 81.0; // all weights are .../81
-
+                //val *= 0.0123456790123456790123;
                 mat.add(vertexids[i], vertexids[j], val);
             } // end for j
         } // end for i
