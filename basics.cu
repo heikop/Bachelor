@@ -7,6 +7,7 @@ void initCuda()
     int* dummy;
     cudaMalloc(&dummy, 100*sizeof(int));
     cudaFree(dummy);
+    cudaDeviceSynchronize();
 }
 
 template<typename scalar> void malloc_cuda(scalar** devPtr, size_t size)
@@ -47,6 +48,8 @@ void get_kernel_config(dim3* const numblocks, dim3* const numthreads, size_t tot
     assert(devCount > 0);
     cudaDeviceProp props;
     cudaGetDeviceProperties(&props, 0);
-    *numthreads = dim3(props.maxThreadsDim[0], 1, 1);
+    //*numthreads = dim3(props.maxThreadsDim[0], 1, 1);
+    //*numthreads = dim3(128, 1, 1);
+    *numthreads = dim3(256, 1, 1);
     *numblocks = dim3(totalthreads / (*numthreads).x + (totalthreads % (*numthreads).x == 0 ? 0 : 1), 1, 1);
 }

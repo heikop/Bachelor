@@ -1,6 +1,9 @@
 #ifndef __VECTORGPU_HPP_
 #define __VECTORGPU_HPP_
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 #include <cassert>
 #include <vector>
 #include <iostream>

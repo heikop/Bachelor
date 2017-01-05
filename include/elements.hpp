@@ -37,10 +37,10 @@ public:
     virtual std::array<datatype, 2> gradient_ref(const unsigned int basis_function,
                                                  const datatype x,
                                                  const datatype y) const = 0;
-    virtual const std::array<std::array<datatype, 2>, 2> transformation_matrix() const;
-    virtual const datatype area() const;
+    virtual const std::array<std::array<datatype, 2>, 2> transformation_matrix() const { assert(false); return {0,0,0,0}; }
+    virtual const datatype area() const { assert(false); return static_cast<datatype>(0); }
     virtual const datatype trafo_determinant(const datatype xi,
-                                             const datatype eta) const;
+                                             const datatype eta) const { assert(false); return static_cast<datatype>(0); }
 
     virtual ~Element() { }
 protected:
@@ -325,6 +325,14 @@ public:
         { return std::vector<size_t>{this->_p0.id, this->_p1.id, this->_p2.id, this->_p3.id}; }
     const std::array<datatype, 8> get_pointcoords() const
         { return {this->_p0.x, this->_p1.x, this->_p2.x, this->_p3.x, this->_p0.y, this->_p1.y, this->_p2.y, this->_p3.y}; }
+
+private:
+    datatype evaluate_ref(const unsigned int basis_function,
+                          const datatype x) const
+        { assert(false); }
+    std::array<datatype, 2> gradient_ref(const unsigned int basis_function,
+                                         const datatype x)
+        { assert(false); }
 };
 
 template<typename datatype>

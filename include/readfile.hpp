@@ -20,7 +20,7 @@ void file_to_mesh(string filename, std::vector<Vertex<datatype>>& vertices, std:
     do { fin >> tmp; } while(tmp != "$Nodes");
     size_t num_vertices; fin >> num_vertices;
     vertices.resize(num_vertices);
-    double z_coord_trash;
+    datatype z_coord_trash;
     for (size_t i{0}; i < num_vertices; ++i)
     {
         fin >> vertices[i].id >> vertices[i].x >> vertices[i].y >> z_coord_trash;
@@ -72,7 +72,7 @@ void file_to_mesh_all(string filename, std::vector<Vertex<datatype>>& vertices, 
     do { fin >> tmp; } while(tmp != "$Nodes");
     size_t num_vertices; fin >> num_vertices;
     vertices.resize(num_vertices);
-    double z_coord_trash;
+    datatype z_coord_trash;
     for (size_t i{0}; i < num_vertices; ++i)
     {
         fin >> vertices[i].id >> vertices[i].x >> vertices[i].y >> z_coord_trash;

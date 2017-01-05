@@ -1,6 +1,9 @@
 #ifndef __CSRMATRIXGPU_HPP_
 #define __CSRMATRIXGPU_HPP_
 
+#include <cuda.h>
+#include <cuda_runtime.h>
+
 #include <cassert>
 #include <vector>
 #include <iostream>

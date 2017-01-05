@@ -36,7 +36,8 @@ void CgSolver<mtype, vtype>::solve(vtype& res)
 
     for (size_t it{0}; std::sqrt(residual.l2norm2()) > tol && it < maxit; ++it)
     {
-std::cout << "after " << it << " iteratons" << ": " << std::sqrt(residual.l2norm2()) << std::endl;
+        if (it % 20 == 0)
+            std::cout << "after " << it << " iteratons" << ": " << std::sqrt(residual.l2norm2()) << std::endl;
         beta = alpha / rho / omega;         // 2.
         rho = r_hat.dot_vec(residual);      // 1.
         beta *= rho;                        // 2.
