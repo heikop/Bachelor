@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
     std::vector<Vertex<float>> nodes;
     std::vector<Element<float>*> elements;
 
-    file_to_mesh_all("../data/square_quadrilateral_q1_c.msh", nodes, elements);
+    file_to_mesh_all("../data/square_quadrilateral_q1_d.msh", nodes, elements);
     std::cout << "num nodes: " << nodes.size() << std::endl;
     std::cout << "num elements: " << elements.size() << std::endl;
 
@@ -53,7 +53,7 @@ int main(int argc, char* argv[])
                               { qp, 0.0},
                               { qp,  qp}};
     // function begin: assemble
-    size_t num_elem{elements.size()};
+    const size_t num_elem{elements.size()};
     #pragma omp parallel for// num_threads(16)
     for (size_t e=0; e < num_elem; e++)
     {
