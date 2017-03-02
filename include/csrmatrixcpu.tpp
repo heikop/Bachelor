@@ -186,7 +186,8 @@ void CsrMatrixCpu<datatype>::multvec(const VectorCpu& vec, VectorCpu& res) const
 {
     assert(_numcols == vec._size && _numrows == res._size); //TODISCUSS or reallocate when res has a different size?
     assert(_numcols == vec._size && _numrows == res._size);     //TODISCUSS or reallocate when res has a different size?
-    for (size_t row{0}; row < _numrows; ++row)
+    #pragma omp parallel for
+    for (size_t row=0; row < _numrows; ++row)
     {
         res._values[row] = 0.0;
         for (size_t col{_rowptr[row]}; col < _rowptr[row+1]; ++col)

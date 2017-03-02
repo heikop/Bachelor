@@ -19,8 +19,6 @@
 #include "../include/global.hpp"
 #include "../include/global.cuh"
 
-#include <cuda_profiler_api.h>
-
 #include <omp.h>
 #include <stdio.h>
 
@@ -29,12 +27,8 @@ using namespace std;
 // pre declaration
 void __K_assemble_element_Q1_O5(const float* node_coords, const size_t* dof_ids, const float* quadpoints, const float* weights, const size_t num_elements,
                                 const size_t* const rowptr, const size_t* const colind, float* values, const size_t numrows);
-void __K_assemble_element_Q1_O5_unrolled(const float* node_coords, const size_t* dof_ids, const float* quadpoints, const float* weights, const size_t num_elements,
-                                         const size_t* const rowptr, const size_t* const colind, float* values, const size_t numrows);
 void __K_assemble_element_Q1_O5_LM(const float* d_coords, const size_t* d_dof, const float* d_quadpoints, const float* d_weights, const size_t num_elements,
                                    float* d_localmatrices);
-void __K_assemble_element_Q1_O5_LM_unrolled(const float* d_coords, const size_t* d_dof, const float* d_quadpoints, const float* d_weights, const size_t num_elements,
-                                            float* d_localmatrices);
 void __K_assemble_element_Q1_O5_LM_1epb(const float* d_coords, const float* d_quadpoints, const float* d_weights,
                                         const size_t num_elements, float* d_localmatrices);
 
@@ -51,7 +45,7 @@ int main(int argc, char* argv[])
     std::vector<Vertex<float>> nodes;
     std::vector<Element<float>*> elements;
 
-    file_to_mesh_all("../data/square_quadrilateral_q1_b.msh", nodes, elements);
+    file_to_mesh_all("../data/square_quadrilateral_q1_a.msh", nodes, elements);
     std::cout << "num nodes: " << nodes.size() << std::endl;
     std::cout << "num elements: " << elements.size() << std::endl;
 
@@ -115,9 +109,9 @@ int main(int argc, char* argv[])
     all_coords.clear();
     // also copy the 'shared data'
     float qp(std::sqrt(0.6));
-    float weights[9]; weights[0] = 25.0/81.0*0.0625; weights[1] = 40.0/81.0*0.0625; weights[2] = 25.0/81.0*0.0625;
-                      weights[3] = 40.0/81.0*0.0625; weights[4] = 64.0/81.0*0.0625; weights[5] = 40.0/81.0*0.0625;
-                      weights[6] = 25.0/81.0*0.0625; weights[7] = 40.0/81.0*0.0625; weights[8] = 25.0/81.0*0.0625;
+    float weights[9]; weights[0] = 25.0/81.0; weights[1] = 40.0/81.0; weights[2] = 25.0/81.0;
+                      weights[3] = 40.0/81.0; weights[4] = 64.0/81.0; weights[5] = 40.0/81.0;
+                      weights[6] = 25.0/81.0; weights[7] = 40.0/81.0; weights[8] = 25.0/81.0;
     float quadpoints[18]; quadpoints[0]  = -qp; quadpoints[1]  = -qp;
                           quadpoints[2]  = -qp; quadpoints[3]  = 0.0;
                           quadpoints[4]  = -qp; quadpoints[5]  =  qp;
@@ -140,25 +134,19 @@ int main(int argc, char* argv[])
     std::cout << " - copytime: " << -copytime * 1000.0 << std::endl;
 
     // call kernel
-    cudaProfilerStart();
     cudaDeviceSynchronize();
     cudaThreadSynchronize();
     double kerneltime = omp_get_wtime();
     __K_assemble_element_Q1_O5(d_coords, d_dof, d_quadpoints, d_weights, numelem,
                                mat_gpu._rowptr, mat_gpu._colind, mat_gpu._values, mat_cpu._numrows);
-//    __K_assemble_element_Q1_O5_unrolled(d_coords, d_dof, d_quadpoints, d_weights, numelem,
-//                                        mat_gpu._rowptr, mat_gpu._colind, mat_gpu._values, mat_cpu._numrows);
-//    __K_assemble_element_Q1_O5_LM(d_coords, d_dof, d_quadpoints, d_weights, numelem,
-//                                  d_localmatrices);
-//    __K_assemble_element_Q1_O5_LM_unrolled(d_coords, d_dof, d_quadpoints, d_weights, numelem,
-//                                           d_localmatrices);
+    //__K_assemble_element_Q1_O5_LM(d_coords, d_dof, d_quadpoints, d_weights, numelem,
+    //                              d_localmatrices);
     //__K_assemble_element_Q1_O5_LM_1epb(d_coords, d_quadpoints, d_weights, numelem, d_localmatrices);
     cudaDeviceSynchronize();
     cudaThreadSynchronize();
     kerneltime -= omp_get_wtime();
     std::cout << " - kerneltime: " << -kerneltime * 1000.0 << std::endl;
     std::cout << " - total: " << (-copytime -kerneltime) * 1000.0 << std::endl;
-    cudaProfilerStop();
     //float values[50];
     //size_t colind[50];
     //memcpy_cuda(values, mat_gpu._values, 50*sizeof(float), d2h);

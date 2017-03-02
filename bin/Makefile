@@ -34,10 +34,14 @@ cpu_run: cpu_compile
 
 gpu_run: cpu_compile gpu_compile
 	$(CPP) $(CXX_FLAGS) $(CUDA_LIBS) $(OBJ_CUDA) $(OBJ_CPP) allinone_gpu.o -o run_cuda
-	$(CPP) $(CXX_FLAGS) $(OBJ_CPP) measure_gpu.o -o measure_gpu
+	$(CPP) $(CXX_FLAGS) $(CUDA_LIBS) $(OBJ_CUDA) $(OBJ_CPP) measure_gpu.o -o measure_gpu
 
 all: cpu_run gpu_run
 
 clean:
-	rm -rf run_cpu measure_cpu $(OBJ_CPP) $(OBJ_CPP_RUN)
-	rm -rf run_cuda measure_gpu $(OBJ_CUDA) $(OBJ_CUDA_RUN)
+	rm -rf $(OBJ_CPP)  $(OBJ_CPP_RUN)
+	rm -rf $(OBJ_CUDA) $(OBJ_CUDA_RUN)
+
+cleanfull: clean
+	rm -rf run_cpu  measure_cpu
+	rm -rf run_cuda measure_gpu

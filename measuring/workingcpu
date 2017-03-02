@@ -5,14 +5,14 @@
 #include <typeinfo>
 #include <functional>
 
-#include "include/elements.hpp"
-#include "include/readfile.hpp"
-#include "include/structure.hpp"
-#include "include/quadrature.hpp"
-#include "include/cgsolver.hpp"
+#include "../include/elements.hpp"
+#include "../include/readfile.hpp"
+#include "../include/structure.hpp"
+#include "../include/quadrature.hpp"
+#include "../include/cgsolver.hpp"
 
-#include "include/csrmatrixcpu.hpp"
-#include "include/vectorcpu.hpp"
+#include "../include/csrmatrixcpu.hpp"
+#include "../include/vectorcpu.hpp"
 
 #include <omp.h>
 #include <stdio.h>
@@ -21,12 +21,15 @@ using namespace std;
 
 int main(int argc, char* argv[])
 {
+    if (argc > 1)
+        std::cout << "incl solving and output" << std::endl;
+
     float walltime[2];
     std::cout << ">- CPU: MESH FORMAT, Q2 -<" << std::endl;
     std::vector<Vertex<float>> nodes;
     std::vector<Element<float>*> elements;
 
-    file_to_mesh_all("../data/square_quadrilateral_q1_b.msh", nodes, elements);
+    file_to_mesh_all("../data/square_quadrilateral_q1_a.msh", nodes, elements);
     std::cout << "num nodes: " << nodes.size() << std::endl;
     std::cout << "num elements: " << elements.size() << std::endl;
 
@@ -54,7 +57,7 @@ int main(int argc, char* argv[])
                               { qp,  qp}};
     // function begin: assemble
     const size_t num_elem{elements.size()};
-    #pragma omp parallel for// num_threads(16)
+    #pragma omp parallel for num_threads(16)
     for (size_t e=0; e < num_elem; e++)
     {
         const std::vector<size_t> vertexids{elements[e]->vertexids()}; // only needed for vertexids.size() -> always known (=8)
@@ -74,10 +77,6 @@ int main(int argc, char* argv[])
                             ( -(1.0f-xi )*coords[0] - (1.0f+xi )*coords[1] + (1.0f+xi )*coords[2] + (1.0f-xi )*coords[3] ) * 0.25f },
                           { ( -(1.0f-eta)*coords[4] + (1.0f-eta)*coords[5] + (1.0f+eta)*coords[6] - (1.0f+eta)*coords[7] ) * 0.25f ,
                             ( -(1.0f-xi )*coords[4] - (1.0f+xi )*coords[5] + (1.0f+xi )*coords[6] + (1.0f-xi )*coords[7] ) * 0.25f } };
-                    //    { { ( (eta-1.0)*coords[0] + (1.0-eta)*coords[1] + (1.0+eta)*coords[2] + (eta-1.0)*coords[3] ) * 0.25 ,
-                    //        ( (xi -1.0)*coords[0] + (xi -1.0)*coords[1] + (1.0+xi )*coords[2] + (1.0-xi )*coords[3] ) * 0.25 },
-                    //      { ( (eta-1.0)*coords[4] + (1.0-eta)*coords[5] + (1.0+eta)*coords[6] + (eta-1.0)*coords[7] ) * 0.25 ,
-                    //        ( (xi -1.0)*coords[4] + (xi -1.0)*coords[5] + (1.0+xi )*coords[6] + (1.0-xi )*coords[7] ) * 0.25 } };
 
                     // help vars
                     std::array<float, 2> grad1;
@@ -122,9 +121,14 @@ int main(int argc, char* argv[])
     // function end: assemble
     walltime[1] -= omp_get_wtime();
     std::cout << " - done (" << -walltime[1] * 1000.0 << ")" << std::endl;
+    std::cout << "num values: " << mat._rowptr[mat._numrows] << std::endl;
     for (int k(0); k < 10; ++k)
-        std::cout << "(0, " << mat._colind[k] << ") = " << mat._values[k] << std::endl;
+        std::cout << "(0, " << mat._colind[mat._rowptr[mat._numrows] - k] << ") = " << mat._values[mat._rowptr[mat._numrows] - k] << std::endl;
+        //std::cout << "(0, " << mat._colind[k] << ") = " << mat._values[k] << std::endl;
+    std::cout << "extra: " << mat._colind[mat._rowptr[mat._numrows] - 50] << ") = " << mat._values[mat._rowptr[mat._numrows] - 50] << std::endl;
 
+if (argc > 1)
+{
     // assemble rhs
     std::function<float(float, float)> f = [](float x, float y)
                     { return static_cast<float>(2.0) * (x - x*x + y - y*y); };
@@ -150,7 +154,6 @@ int main(int argc, char* argv[])
         }
     }
 
-
     // solve LGS
     std::cout << "solve" << std::flush;
     CgSolver<CsrMatrixCpu<float>, VectorCpu> solver(mat, rhs);
@@ -158,50 +161,24 @@ int main(int argc, char* argv[])
     solver.solve(res);
     std::cout << " - done" << std::endl;
 
-    bool triangles_used = false; // false -> quadrilaterals
     // write vtk-file
-    ofstream output("../data/allinone.vtk");
+    ofstream output("../data/cpu.vtk");
     output << "# vtk DataFile Version 3.0" << std::endl;
     output << "square q2" << std::endl;
     output << "ASCII" << std::endl;
     output << "DATASET UNSTRUCTURED_GRID" << std::endl;
     output << std::endl;
-    output << "POINTS " << numvertices << (typeid(float) == typeid(float) ? " float" : " float") << std::endl;
+    output << "POINTS " << numvertices << " float" << std::endl;
     for (const auto& n : nodes)
         output << n.x << " " << n.y << " 0" << std::endl;
     output << std::endl;
-    if (triangles_used) // bad style
-        output << "CELLS " << elements.size() << " " << 4*elements.size() << std::endl;
-    else
-        output << "CELLS " << elements.size() << " " << 5*elements.size() << std::endl;
+    output << "CELLS " << elements.size() << " " << 5*elements.size() << std::endl;
     for (const auto& e : elements)
-    {
-        //for (const auto id : e->vertexids())
-            //TODO
-        if (typeid(*e) == typeid(TriangleQ1<float>)
-         || typeid(*e) == typeid(TriangleQ2<float>) )
-            output << "3 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << std::endl;
-        else if (typeid(*e) == typeid(QuadrilateralQ1<float>)
-              || typeid(*e) == typeid(QuadrilateralQ2<float>) )
-            output << "4 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << " " << e->vertexids()[3] << std::endl;
-        else
-            assert(false);
-    }
+        output << "4 " << e->vertexids()[0] << " " << e->vertexids()[1] << " " << e->vertexids()[2] << " " << e->vertexids()[3] << std::endl;
     output << std::endl;
     output << "CELL_TYPES " << elements.size() << std::endl;
     for (size_t i{0}; i < elements.size(); ++i)
-    {
-        if (typeid(*(elements[i])) == typeid(TriangleQ1<float>)
-         || typeid(*(elements[i])) == typeid(TriangleQ2<float>) )
-            output << "5" << std::endl; // TriangleQ1
-        //output << "22" << std::endl; // TriangleQ2
-        else if (typeid(*(elements[i])) == typeid(QuadrilateralQ1<float>)
-              || typeid(*(elements[i])) == typeid(QuadrilateralQ2<float>) )
-            output << "9" << std::endl; // QuadrilateralQ1
-        //output << "23" << std::endl; // QuadrilateralQ2
-        else
-            assert(false);
-    }
+        output << "9" << std::endl; // QuadrilateralQ1
     output << std::endl;
     output << "POINT_DATA " << numvertices << std::endl;
     output << "SCALARS u " << (typeid(float) == typeid(float) ? "float" : "float") << std::endl;
@@ -209,6 +186,7 @@ int main(int argc, char* argv[])
     for (size_t i{0}; i < numvertices; ++i)
         output << (std::abs(res._values[i]) < 0.0001 ? 0 : res._values[i]) << std::endl;
     output.close();
+}
 
     return 0;
 }

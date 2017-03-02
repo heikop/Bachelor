@@ -42,7 +42,7 @@ int main(int argc, char* argv[])
     std::vector<Vertex<float>> nodes;
     std::vector<Element<float>*> elements;
 
-    file_to_mesh_all("../data/square_quadrilateral_q1_d.msh", nodes, elements);
+    file_to_mesh_all("../data/square_quadrilateral_q1_b.msh", nodes, elements);
     std::cout << "num nodes: " << nodes.size() << std::endl;
     std::cout << "num elements: " << elements.size() << std::endl;
 
@@ -146,10 +146,10 @@ void assemble_matrix_Q1_O5(const std::vector<Element<float>*>& elements, CsrMatr
     cudaDeviceSynchronize();
     cudaThreadSynchronize();
     double kerneltime = omp_get_wtime();
-    //__K_assemble_element_Q1_O5(d_coords, d_dof, d_quadpoints, d_weights, numelem,
-    //                           matrix._rowptr, matrix._colind, matrix._values, matrix._numrows);
-    __K_assemble_element_Q1_O5_LM(d_coords, d_dof, d_quadpoints, d_weights, numelem,
-                                  d_localmatrices);
+    __K_assemble_element_Q1_O5(d_coords, d_dof, d_quadpoints, d_weights, numelem,
+                               matrix._rowptr, matrix._colind, matrix._values, matrix._numrows);
+    //__K_assemble_element_Q1_O5_LM(d_coords, d_dof, d_quadpoints, d_weights, numelem,
+    //                              d_localmatrices);
     //__K_assemble_element_Q1_O5_LM_1epb(d_coords, d_quadpoints, d_weights, numelem, d_localmatrices);
     cudaDeviceSynchronize();
     cudaThreadSynchronize();
