@@ -363,6 +363,8 @@ public:
                                          const datatype y) const;
     const std::vector<size_t> vertexids() const
         { return std::vector<size_t>{this->_p0.id, this->_p1.id, this->_p2.id, this->_p3.id, _p4_id, _p5_id, _p6_id, _p7_id, _p8_id}; }
+    const std::array<datatype, 8> get_pointcoords() const
+        { return {this->_p0.x, this->_p1.x, this->_p2.x, this->_p3.x, this->_p0.y, this->_p1.y, this->_p2.y, this->_p3.y}; } //TODO all coords?
 
 private:
     const size_t _p4_id, _p5_id, _p6_id, _p7_id, _p8_id;
